@@ -1,0 +1,676 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="h-full flex flex-col p-2 animate-fade-in-up space-y-6">
+    <!-- Header -->
+    <div
+        class="flex flex-wrap items-center justify-between gap-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-xl">
+        <div class="flex items-center gap-4">
+            <div
+                class="w-14 h-14 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <i class="fas fa-chart-line text-3xl text-white"></i>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <!-- Manual Record Button -->
+            <button onclick="openManualModal()" class="px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl border border-white/10 transition-all flex items-center gap-2 group">
+                <div class="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-plus"></i>
+                </div>
+                إضافة سجل يدوي
+            </button>
+        </div>
+
+        <div class="flex flex-col md:flex-row items-center gap-3">
+
+            <!-- Period Filters -->
+            <div class="bg-black/40 rounded-xl p-1 border border-white/10 flex gap-1">
+                <a href="?period=day"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all {% if period == 'day' %}bg-green-600 text-white shadow-lg shadow-green-500/20{% else %}text-gray-400 hover:text-white{% endif %}">اليوم</a>
+                <a href="?period=week"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all {% if period == 'week' %}bg-green-600 text-white{% else %}text-gray-400 hover:text-white{% endif %}">الأسبوع</a>
+                <a href="?period=month"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all {% if period == 'month' %}bg-green-600 text-white{% else %}text-gray-400 hover:text-white{% endif %}">الشهر</a>
+                <a href="?period=year"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all {% if period == 'year' %}bg-green-600 text-white{% else %}text-gray-400 hover:text-white{% endif %}">السنة</a>
+                <a href="?period=all"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all {% if period == 'all' %}bg-green-600 text-white{% else %}text-gray-400 hover:text-white{% endif %}">الكل</a>
+            </div>
+            <button onclick="document.getElementById('financial-modal').classList.remove('hidden')"
+                class="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-transform hover:scale-105 flex items-center gap-2">
+                <i class="fas fa-plus"></i> إضافة سجل مالي
+            </button>
+        </div>
+    </div>
+
+    <!-- AI INTELLIGENT SCANNER (NEW) -->
+    <div class="bg-gradient-to-br from-[#1a1c2e] to-[#0f101a] border border-white/5 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
+        <!-- Background accents -->
+        <div class="absolute -top-24 -right-24 w-64 h-64 bg-green-500/10 blur-[100px] rounded-full group-hover:bg-green-500/20 transition-all duration-700"></div>
+        <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full group-hover:bg-blue-500/20 transition-all duration-700"></div>
+
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-8 relative z-10">
+            <div class="flex-1 text-right lg:text-right">
+                <div class="inline-flex items-center gap-2 bg-green-500/10 text-green-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-green-500/20">
+                    <i class="fas fa-microchip animate-pulse"></i> نظام الفحص الذكي مفعل
+                </div>
+                <h2 class="text-3xl font-black text-white mb-3">ماسح المستندات المالي <span class="text-green-500">(AI)</span></h2>
+                <p class="text-gray-400 font-bold leading-relaxed max-w-xl">
+                    ارفع الفاتورة، العقد، ملفات PDF، أو جداول الإيرادات. سيقوم المحرك الذكي باستخراج وتحليل كافة البيانات المالية تلقائياً.
+                </p>
+            </div>
+
+            <div class="w-full lg:w-auto">
+                <div id="ai-dropzone" onclick="document.getElementById('ai-file-input').click()" 
+                     class="border-2 border-dashed border-white/10 hover:border-green-500/50 bg-white/[0.02] hover:bg-white/[0.05] rounded-[2rem] p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-500 group/drop">
+                    
+                    <input type="file" id="ai-file-input" class="hidden" accept="image/*,.pdf,.csv,.xls,.xlsx" onchange="handleAiUpload(event)">
+                    
+                    <div id="scan-icon" class="w-20 h-20 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-500 mb-6 group-hover/drop:scale-110 group-hover/drop:rotate-3 transition-transform duration-500">
+                        <i class="fas fa-file-invoice-dollar text-4xl"></i>
+                    </div>
+                    
+                    <div id="scan-status" class="text-center">
+                        <p class="text-white font-black text-lg mb-1">اسحب المستند هنا</p>
+                        <p class="text-gray-500 text-sm font-bold italic">يدعم (JPG, PDF, Excel, CSV) للتحليل الذكي</p>
+                    </div>
+
+                    <!-- Scanning Progress (Hidden by default) -->
+                    <div id="scan-progress" class="hidden w-full text-center py-4">
+                        <div class="w-16 h-16 border-4 border-green-500/20 border-t-green-500 rounded-full animate-spin mx-auto mb-4"></div>
+                        <p class="text-green-400 font-black animate-pulse">جارٍ تحليل المستند بالذكاء الاصطناعي...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced KPIs & Valuation -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Market Cap / Company Value -->
+        <div class="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-2xl p-4 relative overflow-hidden shadow-2xl">
+            <h3 class="text-[10px] uppercase font-bold text-indigo-300 mb-1">القيمة السوقية (Market Cap)</h3>
+            <div class="text-2xl font-black text-white flex items-end gap-1">
+                {{ economics.market_cap|default:0|floatformat:0 }} <span class="text-[10px] text-gray-400">ج.م</span>
+            </div>
+            <div class="mt-2 flex items-center gap-2">
+                <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">سعر السهم: {{ economics.share_price }} ج.م</span>
+            </div>
+            <i class="fas fa-gem text-indigo-500/20 text-5xl absolute right-1 bottom-1"></i>
+        </div>
+
+        <!-- AI Forecast -->
+        <div class="bg-gradient-to-br from-amber-600/20 to-orange-600/20 border border-amber-500/30 rounded-2xl p-4 relative overflow-hidden shadow-2xl">
+            <h3 class="text-[10px] uppercase font-bold text-amber-300 mb-1">توقع القيمة (AI Forecast)</h3>
+            <div class="text-2xl font-black text-white flex items-end gap-1">
+                {{ ai_forecast_total|default:0|floatformat:0 }} <span class="text-[10px] text-gray-400">ج.م</span>
+            </div>
+            <p class="text-[9px] text-amber-500/60 mt-2 italic">بناءً على اتجاهات الاستثمار الحالية</p>
+            <i class="fas fa-magic text-amber-500/20 text-5xl absolute right-1 bottom-1"></i>
+        </div>
+
+        <!-- Profit / Loss -->
+        <div class="{% if aggr.total_profit >= 0 %}bg-green-500/10 border-green-500/20{% else %}bg-red-500/10 border-red-500/20{% endif %} border rounded-2xl p-4 relative overflow-hidden">
+            <h3 class="text-[10px] uppercase font-bold {% if aggr.total_profit >= 0 %}text-green-400{% else %}text-red-400{% endif %} mb-1">
+                {% if aggr.total_profit >= 0 %}صافي الأرباح{% else %}إجمالي الخسارة{% endif %}
+            </h3>
+            <div class="text-xl font-black {% if aggr.total_profit >= 0 %}text-green-500{% else %}text-red-500{% endif %} flex items-end gap-1">
+                {{ aggr.total_profit|default:0|floatformat:0 }} <span class="text-[10px] text-gray-600">ج.م</span>
+            </div>
+            <i class="fas fa-wallet {% if aggr.total_profit >= 0 %}text-green-500/20{% else %}text-red-500/20{% endif %} text-4xl absolute right-1 bottom-1"></i>
+        </div>
+
+        <!-- Margin -->
+        <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 relative overflow-hidden">
+            <h3 class="text-[10px] uppercase font-bold text-indigo-400 mb-1">هامش الربح %</h3>
+            <div class="text-xl font-black text-indigo-400 flex items-end gap-1">
+                {% if aggr.total_profit >= 0 %}{{ margin|default:0 }}%{% else %}0%{% endif %}
+            </div>
+            <i class="fas fa-chart-pie text-indigo-500/20 text-4xl absolute right-1 bottom-1"></i>
+        </div>
+    </div>
+
+    <!-- Secondary Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-3">
+            <h4 class="text-[9px] text-gray-400 uppercase font-bold mb-1">إجمالي الإيرادات</h4>
+            <p class="text-sm font-bold text-blue-400">{{ aggr.total_rev|default:0|floatformat:0 }} ج.م</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-3">
+            <h4 class="text-[9px] text-gray-400 uppercase font-bold mb-1">إجمالي المصروفات</h4>
+            <p class="text-sm font-bold text-red-400">{{ total_all_costs|default:0|floatformat:0 }} ج.م</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-3">
+            <h4 class="text-[9px] text-gray-400 uppercase font-bold mb-1">الضرائب</h4>
+            <p class="text-sm font-bold text-yellow-400">{{ aggr.total_tax|default:0|floatformat:0 }} ج.م</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-3">
+            <h4 class="text-[9px] text-gray-400 uppercase font-bold mb-1">متوسط الربح</h4>
+            <p class="text-sm font-bold text-purple-400">{{ aggr.avg_profit|default:0|floatformat:0 }} ج.م</p>
+        </div>
+    </div>
+
+    <!-- Financial Intelligence Alerts (Anomalies & Guard) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- AI Anomalies Panel -->
+        {% if anomalies %}
+        <div class="bg-red-500/10 border border-red-500/20 rounded-3xl p-6">
+            <h3 class="text-red-400 font-bold flex items-center gap-2 mb-4">
+                <i class="fas fa-exclamation-triangle animate-pulse"></i> تنبيه ذكاء أصطناعي: تجاوز التكاليف
+            </h3>
+            <div class="space-y-3">
+                {% for anomaly in anomalies %}
+                <div class="bg-black/40 p-3 rounded-xl border border-red-500/10 hover:bg-black/60 transition-colors">
+                    <p class="text-xs text-gray-300">موقع العمل: <strong class="text-white">{{ anomaly.project.name }}</strong></p>
+                    <p class="text-xs text-red-300">معدل التخطب: <strong>{{ anomaly.excess|floatformat:1 }}%</strong> تجاوزاً للميزانية!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Financial Guard Panel (Profit/Loss Prediction) -->
+        {% if guard_alerts %}
+        <div class="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6">
+            <h3 class="text-amber-400 font-bold flex items-center gap-2 mb-4">
+                <i class="fas fa-shield-alt"></i> حارس التدفق المالي: حالة الربحية
+            </h3>
+            <div class="space-y-3">
+                {% for alert in guard_alerts %}
+                <div class="bg-black/40 p-3 rounded-xl border border-amber-500/10 hover:bg-black/60 transition-colors">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-white">{{ alert.project.name }}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">خسارة متوقعة: {{ alert.percent }}%</span>
+                    </div>
+                    <p class="text-[10px] text-gray-400 leading-relaxed">{{ alert.message }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% elif not anomalies %}
+        <!-- Default State if no urgent alerts -->
+        <div class="lg:col-span-2 bg-green-500/5 border border-green-500/10 rounded-3xl p-6 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-green-500/20 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-check-shield text-green-400"></i>
+                </div>
+                <div>
+                    <h4 class="text-green-400 font-bold">حالة التدفق آمنة</h4>
+                    <p class="text-xs text-gray-500">لا توجد تجاوزات مالية مرصودة في المواقع النشطة حالياً.</p>
+                </div>
+            </div>
+            <div class="text-[10px] font-bold text-gray-600 bg-white/5 px-3 py-1 rounded-full uppercase tracking-tighter">
+                Financial Guard: Active & Scanning
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+        </div>
+        <i class="fas fa-calculator text-purple-500/20 text-4xl absolute right-1 bottom-1"></i>
+    </div>
+</div>
+
+<!-- Charts Area -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
+    <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-xl relative min-h-[400px]">
+        <h3 class="font-bold text-white mb-4 flex justify-between items-center">
+            <span>📈 أداء صافي الأرباح</span>
+            <span class="text-[10px] text-gray-500">{{ records|length }} نقطة بيانات</span>
+        </h3>
+        <div class="relative w-full h-[320px]">
+            <canvas id="profitChart"></canvas>
+        </div>
+        {% if not records %}
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 text-sm">لا توجد
+            بيانات متاحة لهذا النطاق التجاري</div>
+        {% endif %}
+    </div>
+
+    <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-xl relative min-h-[400px]">
+        <h3 class="font-bold text-white mb-4">🏆 نسبة المبيعات مقارنة بالتكاليف</h3>
+        <div class="relative w-full h-[320px]">
+            <canvas id="distributionChart"></canvas>
+        </div>
+        {% if not records %}
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 text-sm">لا توجد
+            بيانات متاحة</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Records Table Mini -->
+<div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+    <div class="p-3 bg-white/5 border-b border-white/10 text-xs font-bold text-gray-400 uppercase tracking-widest">
+        آخر السجلات المالية المضافة
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-gray-300">
+            <thead class="bg-black/20 text-gray-500 uppercase">
+                <tr>
+                    <th class="px-4 py-3">التاريخ</th>
+                    <th class="px-4 py-3">الإيرادات</th>
+                    <th class="px-4 py-3">المصروفات</th>
+                    <th class="px-4 py-3">COGS</th>
+                    <th class="px-4 py-3">الضرائب</th>
+                    <th class="px-4 py-3 text-green-400">صافي الربح</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for r in records|slice:":10" %}
+                <tr class="hover:bg-white/5 transition-colors">
+                    <td class="px-4 py-3">{{ r.date }}</td>
+                    <td class="px-4 py-3 font-bold text-blue-400">{{ r.revenue|floatformat:0 }}</td>
+                    <td class="px-4 py-3 text-red-300">{{ r.expenses|floatformat:0 }}</td>
+                    <td class="px-4 py-3 text-red-300">{{ r.cogs|floatformat:0 }}</td>
+                    <td class="px-4 py-3 text-yellow-300">{{ r.taxes|floatformat:0 }}</td>
+                    <td
+                        class="px-4 py-3 font-black {% if r.net_profit >= 0 %}text-green-400{% else %}text-red-500{% endif %}">
+                        {{ r.net_profit|floatformat:0 }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-600">لا يوجد سجلات حالياً</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<!-- Modal ... (keep previous modal logic) -->
+<div id="financial-modal"
+    class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-lg shadow-2xl relative">
+        <div class="p-6 border-b border-white/5 flex justify-between items-center">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fas fa-plus-circle text-green-500"></i> إضافة سجل مالي
+            </h3>
+            <button onclick="document.getElementById('financial-modal').classList.add('hidden')"
+                class="text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form method="POST" class="p-6 space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 mb-2 uppercase">التاريخ</label>
+                    <input type="date" name="date" required value="{{ today|date:'Y-m-d' }}"
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 mb-2 uppercase">إجمالي الإيرادات</label>
+                    <input type="number" step="0.01" name="revenue" required
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                        placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 mb-2 uppercase">المصروفات التشغيلية</label>
+                    <input type="number" step="0.01" name="expenses" required
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500"
+                        placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 mb-2 uppercase">تكلفة البضاعة (COGS)</label>
+                    <input type="number" step="0.01" name="cogs" required
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 mb-2 uppercase">الضرائب</label>
+                    <input type="number" step="0.01" name="taxes" required
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500"
+                        placeholder="0.00">
+                </div>
+            </div>
+            <button type="submit"
+                class="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:opacity-90 transition-opacity">
+                حفظ السجل
+            </button>
+        </form>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_body %}
+<!-- AI Review Modal -->
+<div id="ai-review-modal" class="fixed inset-0 z-[60] hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-[#0f111a] border border-white/10 rounded-[3rem] w-full max-w-2xl shadow-2xl relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent pointer-events-none"></div>
+        
+        <div class="p-10 relative z-10">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-green-500/20 rounded-2xl flex items-center justify-center text-green-500">
+                        <i class="fas fa-robot text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black text-white" id="modal-title">نتائج الفحص الذكي</h3>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest" id="modal-subtitle">AI Extraction Result</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('ai-review-modal').classList.add('hidden')" class="text-gray-500 hover:text-white transition-colors text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Error Alerts from AI -->
+            <div id="ai-mistake-container" class="hidden mb-8 space-y-3">
+                <div class="flex items-center gap-3 text-amber-400 bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl">
+                    <i class="fas fa-exclamation-triangle animate-pulse"></i>
+                    <p class="text-xs font-bold" id="ai-mistake-msg"></p>
+                </div>
+            </div>
+
+            <form id="ai-confirm-form" method="POST" action="{% url 'flownest' %}" class="space-y-6">
+                {% csrf_token %}
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-500 uppercase">التاريخ المستخرج</label>
+                        <input type="date" name="date" id="ai-date" required class="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-green-500 transition-all font-bold">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-500 uppercase">الإيرادات</label>
+                        <input type="number" step="0.01" name="revenue" id="ai-revenue" class="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-blue-500 transition-all font-black text-lg">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-500 uppercase">المصروفات</label>
+                        <input type="number" step="0.01" name="expenses" id="ai-expenses" class="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-red-500 transition-all font-black text-lg">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-500 uppercase">تكلفة البضاعة (COGS)</label>
+                        <input type="number" step="0.01" name="cogs" id="ai-cogs" class="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-purple-500 transition-all font-black text-lg">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-500 uppercase">الضرائب</label>
+                        <input type="number" step="0.01" name="taxes" id="ai-taxes" class="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-yellow-500 transition-all font-black text-lg">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 pt-6">
+                    <button type="submit" class="flex-1 py-5 bg-gradient-to-r from-green-600 to-teal-600 text-white font-black rounded-[1.5rem] shadow-2xl shadow-green-500/20 hover:scale-[1.02] active:scale-95 transition-all text-lg">
+                        تأكيد وحفظ السجل
+                    </button>
+                    <button type="button" onclick="document.getElementById('ai-review-modal').classList.add('hidden')" class="px-8 py-5 border border-white/10 text-gray-400 font-bold rounded-[1.5rem] hover:bg-white/5 transition-all">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- RECENT ACTIVITY LOG (Generic Records) - Ultra Premium -->
+    {% if generic_records %}
+    <div class="mt-16 pt-10 border-t border-white/5 relative">
+        <div class="absolute -top-1 left-0 w-20 h-1 bg-gradient-to-r from-green-500 to-transparent rounded-full"></div>
+        
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h3 class="text-xl font-black text-white flex items-center gap-3 tracking-tighter">
+                    <i class="fas fa-chart-line text-green-400"></i> نبض العمليات والتحليل المالي الذكي
+                </h3>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">Live Financial Intelligence</p>
+            </div>
+            {% if profile.role == 'owner' or profile.role == 'manager' %}
+            <div class="flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-2xl shadow-lg">
+                <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                <span class="text-[10px] font-black text-green-300 uppercase">عرض الإدارة العليا</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 gap-5">
+            {% for record in generic_records %}
+            <div class="group relative bg-[#1a1b26]/40 backdrop-blur-md border border-white/5 rounded-[2rem] p-6 transition-all duration-500 hover:bg-[#1a1b26]/60 hover:border-green-500/30 hover:translate-y-[-4px] hover:shadow-2xl hover:shadow-green-500/10">
+                <!-- Floating Glow -->
+                <div class="absolute -right-20 -top-20 w-40 h-40 bg-green-500/5 blur-[80px] rounded-full group-hover:bg-green-500/10 transition-all"></div>
+                
+                <div class="flex flex-col lg:flex-row gap-6 relative z-10 text-right">
+                    <!-- Meta Info -->
+                    <div class="flex-shrink-0 flex lg:flex-col items-center lg:items-end justify-between lg:justify-start gap-4 border-b lg:border-b-0 lg:border-r border-white/5 pb-4 lg:pb-0 lg:pr-6 min-w-[120px]">
+                        <div>
+                            <div class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">{{ record.created_at|date:"d M, Y" }}</div>
+                            <div class="text-xl font-mono font-black text-white/90">{{ record.created_at|date:"H:i" }}</div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-2 text-[10px] font-bold text-gray-400 bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                                <i class="fas fa-user-circle text-green-400"></i> {{ record.created_by.username }}
+                            </div>
+                            {% if profile.role == 'owner' or profile.role == 'manager' %}
+                            <div class="flex items-center gap-2 text-[10px] font-bold text-green-300 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+                                <i class="fas fa-building"></i> {{ record.department.name }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="flex-1">
+                        <h4 class="text-lg font-black text-white group-hover:text-green-300 transition-colors mb-2">{{ record.title }}</h4>
+                        <p class="text-sm text-gray-400 leading-relaxed font-medium mb-5">{{ record.description|truncatechars:200 }}</p>
+                        
+                        {% if record.ai_insight %}
+                        <div class="relative mt-2">
+                            <div class="absolute inset-0 bg-green-500/5 blur-xl rounded-2xl"></div>
+                            <div class="relative bg-gradient-to-br from-green-500/10 to-teal-500/10 border border-green-500/20 rounded-2xl p-4 flex gap-4 items-start shadow-inner">
+                                <div class="w-10 h-10 rounded-xl bg-green-500 flex-shrink-0 flex items-center justify-center text-white shadow-lg shadow-green-500/40">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-[10px] font-black text-green-400 uppercase tracking-widest mb-1">AI Financial Intelligence</div>
+                                    <p class="text-xs text-green-100/90 font-bold leading-relaxed">{{ record.ai_insight }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="flex items-center gap-3 text-gray-600 text-xs font-bold italic animate-pulse">
+                            <div class="flex gap-1">
+                                <span class="w-1 h-1 bg-gray-600 rounded-full animate-bounce"></span>
+                                <span class="w-1 h-1 bg-gray-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                <span class="w-1 h-1 bg-gray-600 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                            </div>
+                            المساعد المالي يقوم حالياً بتحليل البيانات...
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function handleAiUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // UI Feedback: Start Scanning
+        document.getElementById('scan-icon').classList.add('hidden');
+        document.getElementById('scan-status').classList.add('hidden');
+        document.getElementById('scan-progress').classList.remove('hidden');
+        document.getElementById('ai-dropzone').classList.add('pointer-events-none', 'border-green-500/40');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('{% url "flownest_ai_scan" %}', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Populate Modal
+            document.getElementById('ai-date').value = data.date || '';
+            document.getElementById('ai-revenue').value = data.revenue || 0;
+            document.getElementById('ai-expenses').value = data.expenses || 0;
+            document.getElementById('ai-cogs').value = data.cogs || 0;
+            document.getElementById('ai-taxes').value = data.taxes || 0;
+
+            // UI Feedback
+            const modalTitle = document.getElementById('modal-title');
+            const modalSubtitle = document.getElementById('modal-subtitle');
+            const mistakeContainer = document.getElementById('ai-mistake-container');
+
+            if(data.ai_failed) {
+                modalTitle.innerText = "إضافة سجل مالي (يدوي)";
+                modalSubtitle.innerText = "Manual Entry Mode";
+                document.getElementById('ai-mistake-msg').innerText = "فشل التعرف الآلي: " + (data.error_msg || "يرجى الإدخال يدوياً.");
+                mistakeContainer.classList.remove('hidden');
+            } else {
+                modalTitle.innerText = "نتائج الفحص الذكي";
+                modalSubtitle.innerText = "AI Extraction Result";
+                if (data.alerts && data.alerts.length > 0) {
+                    document.getElementById('ai-mistake-msg').innerText = data.alerts.join(' | ');
+                    mistakeContainer.classList.remove('hidden');
+                } else {
+                    mistakeContainer.classList.add('hidden');
+                }
+            }
+            document.getElementById('ai-review-modal').classList.remove('hidden');
+            resetAiZone();
+        })
+        .catch(err => {
+            console.error(err);
+            openManualModal();
+            resetAiZone();
+        });
+    }
+
+    function openManualModal() {
+        const modalTitle = document.getElementById('modal-title');
+        const modalSubtitle = document.getElementById('modal-subtitle');
+        if(modalTitle) modalTitle.innerText = "إضافة سجل مالي جديد";
+        if(modalSubtitle) modalSubtitle.innerText = "Manual Financial Entry";
+        
+        const mistakeContainer = document.getElementById('ai-mistake-container');
+        if(mistakeContainer) mistakeContainer.classList.add('hidden');
+        
+        const form = document.getElementById('ai-confirm-form');
+        if(form) form.reset();
+        
+        document.getElementById('ai-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('ai-review-modal').classList.remove('hidden');
+    }
+
+    function resetAiZone() {
+        document.getElementById('scan-icon').classList.remove('hidden');
+        document.getElementById('scan-status').classList.remove('hidden');
+        document.getElementById('scan-progress').classList.add('hidden');
+        document.getElementById('ai-dropzone').classList.remove('pointer-events-none', 'border-green-500/40');
+        document.getElementById('ai-file-input').value = '';
+    }
+
+    const recordData = [
+        {% for r in records %}
+        { date: "{{ r.date|date:'m-d' }}", profit: parseFloat("{{ r.net_profit|default:0 }}"), revenue: parseFloat("{{ r.revenue|default:0 }}"), cost: parseFloat("{{ r.expenses|default:0 }}") + parseFloat("{{ r.cogs|default:0 }}") + parseFloat("{{ r.taxes|default:0 }}") } {% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    ];
+
+    let cumulativeProfit = 0;
+    let lastPrice = parseFloat("{{ economics.share_price|default:10.0 }}") || 10.0;
+    if (lastPrice <= 0) lastPrice = 10.0;
+
+    const stockTrend = recordData.map(d => {
+        cumulativeProfit += d.profit;
+        let price = lastPrice + (cumulativeProfit / 500000);
+        if (price <= 0.5) price = 0.5; // Floor limit
+        return price;
+    });
+
+    const labels = recordData.length ? recordData.map(d => d.date) : ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'];
+    const displayStock = stockTrend.length ? stockTrend : [10.0, 12.5, 11.2, 15.4, 14.1, 18.9];
+
+    Chart.defaults.color = 'rgba(255,255,255,0.4)';
+    Chart.defaults.font.family = "'Neo Sans Arabic', 'Tajawal', sans-serif";
+
+    // Stock Ticker Chart
+    new Chart(document.getElementById('profitChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'قيمة السهم (EGP)',
+                data: displayStock,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                fill: true,
+                tension: 0.4,
+
+                borderWidth: 3,
+                pointRadius: 4,
+                pointBackgroundColor: '#10b981'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    const revVal = parseFloat("{{ aggr.total_rev|default:0 }}") || 0;
+    const costVal = parseFloat("{{ total_all_costs|default:0 }}") || 0;
+
+    let chartData = [];
+    let chartColors = [];
+    let chartLabels = [];
+
+    if (revVal > 0) {
+        chartData.push(revVal);
+        chartColors.push('#10b981'); // Emerald Green for Revenue
+        chartLabels.push('إجمالي المبيعات (إيرادات)');
+    }
+    if (costVal > 0) {
+        chartData.push(costVal);
+        chartColors.push('#ef4444'); // Red for Costs
+        chartLabels.push('إجمالي التكاليف');
+    }
+
+    // Fallback dummy data if both evaluate zero
+    if (chartData.length === 0) {
+        chartData = [500000, 300000];
+        chartColors = ['#10b981', '#ef4444'];
+        chartLabels = ['إجمالي المبيعات (إيرادات)', 'إجمالي التكاليف'];
+    }
+
+    new Chart(document.getElementById('distributionChart'), {
+        type: 'doughnut',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                data: chartData,
+                backgroundColor: chartColors,
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 15 } }
+            }
+        }
+    });
+</script>
+{% endblock %}

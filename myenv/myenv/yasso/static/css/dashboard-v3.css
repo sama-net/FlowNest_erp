@@ -1,0 +1,119 @@
+:root {
+    --bg-main: #0f111a;
+    --bg-panel: rgba(30, 30, 47, 0.6);
+    --border-col: rgba(255, 255, 255, 0.05);
+    --text-main: #f8fafc;
+    --text-muted: #9ca3af;
+    --primary: #6366f1;
+    --secondary: #ec4899;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: 'Cairo', 'Inter', sans-serif;
+    transition: 0.3s;
+    overflow-x: hidden;
+}
+
+.glass-panel {
+    background: var(--bg-panel);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-col);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.nav-link {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-link:hover {
+    background: rgba(99, 102, 241, 0.1);
+    transform: translateX(-6px);
+    color: var(--primary);
+}
+
+#settings-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100vh;
+    z-index: 200;
+    transform: translateX(110%);
+    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--bg-panel);
+    backdrop-filter: blur(30px);
+    border-left: 1px solid var(--border-col);
+    padding: 2rem;
+}
+
+#settings-panel.open {
+    transform: translateX(0);
+}
+
+.toggle-pill {
+    width: 52px;
+    height: 28px;
+    background: #374151;
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.toggle-pill.on {
+    background: var(--primary);
+}
+
+.toggle-pill::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.toggle-pill.on::after {
+    left: 27px;
+}
+
+#sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 45;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease forwards;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}

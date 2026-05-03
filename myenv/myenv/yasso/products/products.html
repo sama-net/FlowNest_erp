@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+
+    {% for p in pro %}
+        {{p.name}} - {{p.price}}<br>
+    {% endfor %}
+
+
+{% endblock %}

@@ -1,0 +1,381 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+{# ── Inject JS context variables at very top ── #}
+<script>
+    window._csrfToken = '{{ csrf_token }}';
+    window._myUserId = {{ request.user.id }};
+    window._myUsername = '{{ request.user.username|escapejs }}';
+    window._roomName = '{{ room_name|escapejs }}';
+</script>
+
+<div class="flex flex-col bg-[#0d0f1a] rounded-3xl overflow-hidden border border-white/5 shadow-2xl relative"
+     style="height: calc(100vh - 90px);">
+
+    <!-- ─── TOP HEADER ─────────────────────────────────────────────── -->
+    <div class="flex-shrink-0 px-5 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02] backdrop-blur-xl">
+        
+        <!-- Room Identity -->
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                <i class="fas fa-comments text-white text-base"></i>
+            </div>
+            <div>
+                <h2 class="text-base font-black text-white tracking-tight leading-tight">{{ display_name }}</h2>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">{{ messages|length }} رسالة</p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+            <a href="{% url 'chat:task_list' %}"
+               class="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-wide
+                      bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300
+                      rounded-xl transition-all">
+                <i class="fas fa-tasks"></i><span>المهام</span>
+            </a>
+
+            <button onclick="startCall('audio')"
+                    class="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-wide
+                           bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400
+                           rounded-xl transition-all">
+                <i class="fas fa-phone-alt"></i><span>اتصال عام</span>
+            </button>
+
+            {% if profile.role == 'owner' or profile.role == 'manager' or profile.role == 'developer' %}
+            <button onclick="openParticipantModal('call')"
+                    class="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-wide
+                           bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400
+                           rounded-xl transition-all">
+                <i class="fas fa-phone"></i><span>اتصال مستهدف</span>
+            </button>
+            {% endif %}
+
+            <button onclick="startCall('video')"
+                    class="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-wide
+                           bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400
+                           rounded-xl transition-all">
+                <i class="fas fa-video"></i>
+            </button>
+
+            <button id="general-sum-btn" onclick="toggleGeneralSummaryMic()"
+                    title="تلخيص النقاش الحالي"
+                    class="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-wide
+                           bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300
+                           rounded-xl transition-all">
+                <i class="fas fa-microphone text-purple-400 text-sm"></i>
+            </button>
+
+            <button onclick="toggleSummaries()"
+                    class="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-wide
+                           bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300
+                           rounded-xl transition-all">
+                <i class="fas fa-magic"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ─── BODY: Messages + Optional Summaries panel ──────────────── -->
+    <div class="flex flex-1 overflow-hidden relative">
+
+        <!-- Messages Area -->
+        <div id="chat-box" class="flex-1 overflow-y-auto px-4 pt-5 pb-4 space-y-4 custom-scroll">
+            {% for msg in messages %}
+                {% include 'chat/partials/_message.html' %}
+            {% empty %}
+                <div class="flex flex-col items-center justify-center h-full opacity-20 py-20">
+                    <i class="fas fa-comments text-5xl mb-4 text-indigo-400"></i>
+                    <p class="text-gray-400 font-bold">لا توجد رسائل بعد — ابدأ النقاش الآن!</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Summaries Side Panel -->
+        <div id="summaries-panel"
+             class="w-72 bg-[#0d0f1a] border-r border-white/5 flex-shrink-0 overflow-y-auto custom-scroll hidden transition-all duration-300 p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-white text-sm"><i class="fas fa-magic text-purple-400 ml-2"></i> ملخصات</h3>
+                <button onclick="toggleSummaries()" class="text-gray-500 hover:text-white text-sm"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-3" id="summaries-list">
+                {% for s in meeting_summaries %}
+                <div class="bg-white/5 rounded-2xl p-3 border border-white/5">
+                    <p class="text-[9px] text-gray-600 mb-1">{{ s.created_at|date:"Y-m-d H:i" }}</p>
+                    <p class="text-xs text-gray-300 leading-relaxed">{{ s.summary }}</p>
+                </div>
+                {% empty %}
+                <p class="text-xs text-gray-600 text-center py-10 opacity-50">لا توجد ملخصات بعد</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── COMPOSER ───────────────────────────────────────────────── -->
+    <div class="flex-shrink-0 p-3 border-t border-white/5 bg-white/[0.02]">
+
+        <!-- Voice recording UI -->
+        <div id="recording-ui" class="hidden items-center justify-between bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 mb-2 animate-pulse">
+            <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
+                <span class="text-xs text-red-400 font-bold" id="recording-timer">00:00</span>
+            </div>
+            <div class="flex gap-2">
+                <button type="button" onclick="cancelRecording()" class="text-xs text-gray-400 hover:text-white px-2">إلغاء</button>
+                <button type="button" onclick="stopAndSubmitRecording()" class="text-xs bg-red-600 text-white px-3 py-1 rounded-lg">إرسال</button>
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" id="chat-form">
+            {% csrf_token %}
+            <div class="flex gap-2 items-center">
+
+                <!-- Attachment -->
+                <label for="attachment-input"
+                       class="w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex items-center justify-center cursor-pointer transition-all flex-shrink-0">
+                    <i class="fas fa-paperclip text-indigo-400 text-sm"></i>
+                    <input type="file" name="attachment" id="attachment-input" class="hidden" onchange="this.form.submit()">
+                </label>
+
+                <!-- Mic -->
+                <button type="button" id="mic-btn" onclick="startRecording()"
+                        class="w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex items-center justify-center transition-all text-red-400 flex-shrink-0">
+                    <i class="fas fa-microphone text-sm"></i>
+                </button>
+
+                <!-- Text Input -->
+                <div class="flex-1 relative">
+                    <input type="text" name="content" id="message-input"
+                           class="w-full bg-black/40 border border-white/5 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/60 shadow-inner placeholder-gray-600"
+                           placeholder="اكتب رسالتك هنا..." autocomplete="off">
+
+                    {% if profile.role == 'owner' or profile.role == 'manager' %}
+                    <button type="button" onclick="openParticipantModal('msg')"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-lg border border-indigo-500/20 hidden md:block">
+                        <i class="fas fa-user-plus mr-1"></i>تحديد مستلمين
+                    </button>
+                    {% endif %}
+                </div>
+
+                <div id="selected-recipients-hidden" class="hidden"></div>
+
+                <!-- Send Button -->
+                <button type="submit"
+                        class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center hover:scale-105 transition-all shadow-lg shadow-indigo-600/20 flex-shrink-0">
+                    <i class="fas fa-paper-plane text-white text-sm"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- call overlay removed - now using popup window -->
+<div id="call-ui-overlay" class="hidden"></div>
+
+<!-- ─── PARTICIPANT SELECTION MODAL ───────────────────────────────────── -->
+<div id="participant-modal"
+     class="fixed inset-0 z-[100] hidden bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-sm shadow-2xl p-6">
+        <h3 class="text-lg font-black text-white mb-1 flex items-center gap-2">
+            <i class="fas fa-users text-indigo-400"></i> تحديد المشاركين
+        </h3>
+        <p class="text-gray-500 text-xs mb-4">اختر الأشخاص للاتصال أو إرسال رسالة خاصة</p>
+        <div class="max-h-56 overflow-y-auto space-y-2 mb-5 custom-scroll">
+            {% for u in company_users %}
+            <label class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-500/30 flex items-center justify-center text-xs font-bold text-white">{{ u.username|first|upper }}</div>
+                    <div>
+                        <p class="text-sm font-bold text-white leading-tight">{{ u.username }}</p>
+                        <p class="text-[10px] text-gray-500">{{ u.profile.get_role_display }}</p>
+                    </div>
+                </div>
+                <input type="checkbox" name="selected_participants" value="{{ u.id }}"
+                       class="w-4 h-4 accent-indigo-500 rounded">
+            </label>
+            {% empty %}
+            <p class="text-xs text-gray-600 text-center py-6 opacity-50">لا يوجد مستخدمون آخرون</p>
+            {% endfor %}
+        </div>
+        <div class="flex gap-3">
+            <button onclick="closeParticipantModal()"
+                    class="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 font-bold hover:bg-white/10 text-sm">إلغاء</button>
+            <button id="modal-confirm-btn"
+                    class="flex-1 py-3 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-500/20">تأكيد</button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── SCRIPTS ────────────────────────────────────────────────────────── -->
+<script src="https://meet.jit.si/external_api.js"></script>
+<script src="{% static 'js/webrtc-handler-v2.js' %}"></script>
+<script>
+// ── Global config for webrtc-handler-v2.js ──
+window._roomName   = "{{ room_name }}";
+window._csrfToken  = "{{ csrf_token }}";
+window._myUsername = "{{ request.user.get_full_name|default:request.user.username }}";
+
+// ── UI Helpers ──
+function toggleSummaries() {
+    const p = document.getElementById('summaries-panel');
+    p.classList.toggle('hidden');
+}
+
+// ── Audio Player Helpers ──
+function toggleAudioPlayer(msgId) {
+    const audio = document.getElementById('audio-' + msgId);
+    const icon  = document.getElementById('icon-audio-' + msgId);
+    if (!audio) return;
+    if (audio.paused) {
+        // Pause all other audios first
+        document.querySelectorAll('audio').forEach(a => { if (a !== audio) { a.pause(); } });
+        document.querySelectorAll('[id^="icon-audio-"]').forEach(i => {
+            i.classList.remove('fa-pause'); i.classList.add('fa-play');
+        });
+        audio.play().catch(e => console.warn('Audio play error:', e));
+        icon.classList.remove('fa-play'); icon.classList.add('fa-pause');
+    } else {
+        audio.pause();
+        icon.classList.remove('fa-pause'); icon.classList.add('fa-play');
+    }
+}
+function resetAudioPlayer(msgId) {
+    const icon = document.getElementById('icon-audio-' + msgId);
+    if (icon) { icon.classList.remove('fa-pause'); icon.classList.add('fa-play'); }
+    const timer = document.getElementById('timer-' + msgId);
+    if (timer) timer.textContent = '0:00';
+}
+function updateAudioTimer(msgId, audioEl) {
+    const timer = document.getElementById('timer-' + msgId);
+    if (!timer) return;
+    const t = Math.floor(audioEl.currentTime);
+    const m = String(Math.floor(t / 60)).padStart(2, '0');
+    const s = String(t % 60).padStart(2, '0');
+    timer.textContent = m + ':' + s;
+}
+
+// ── Participant Modal ──
+let _modalMode = 'call';
+function openParticipantModal(mode) {
+    _modalMode = mode;
+    document.getElementById('participant-modal').classList.remove('hidden');
+    document.getElementById('participant-modal').classList.add('flex');
+}
+function closeParticipantModal() {
+    document.getElementById('participant-modal').classList.add('hidden');
+    document.getElementById('participant-modal').classList.remove('flex');
+}
+document.getElementById('modal-confirm-btn').addEventListener('click', () => {
+    const checked = [...document.querySelectorAll('[name="selected_participants"]:checked')].map(c => c.value);
+    closeParticipantModal();
+    if (_modalMode === 'call') {
+        startCall('audio', checked);
+    } else {
+        // Set private recipients for next message
+        const hidden = document.getElementById('selected-recipients-hidden');
+        hidden.innerHTML = checked.map(id => `<input type="hidden" name="recipients" value="${id}">`).join('');
+        hidden.classList.remove('hidden');
+    }
+});
+
+// startCall is now handled by webrtc-handler-v2.js to support POST signaling
+
+// ── Voice Recording (MediaRecorder API) ──
+let _mediaRecorder = null;
+let _audioChunks = [];
+let _recordingTimer = null;
+let _recordingSeconds = 0;
+let _recordingStream = null;
+
+async function startRecording() {
+    try {
+        _recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        _audioChunks = [];
+        _mediaRecorder = new MediaRecorder(_recordingStream, { mimeType: 'audio/webm' });
+
+        _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _audioChunks.push(e.data); };
+
+        _mediaRecorder.start(200);
+
+        // Show recording UI
+        const recUI = document.getElementById('recording-ui');
+        recUI.classList.remove('hidden');
+        recUI.classList.add('flex');
+
+        // Start timer
+        _recordingSeconds = 0;
+        _recordingTimer = setInterval(() => {
+            _recordingSeconds++;
+            const m = String(Math.floor(_recordingSeconds / 60)).padStart(2, '0');
+            const s = String(_recordingSeconds % 60).padStart(2, '0');
+            document.getElementById('recording-timer').textContent = `${m}:${s}`;
+        }, 1000);
+
+    } catch(e) {
+        alert('لا يمكن الوصول للمايكروفون: ' + e.message);
+    }
+}
+
+function cancelRecording() {
+    if (_mediaRecorder && _mediaRecorder.state !== 'inactive') _mediaRecorder.stop();
+    if (_recordingStream) _recordingStream.getTracks().forEach(t => t.stop());
+    if (_recordingTimer) clearInterval(_recordingTimer);
+    _audioChunks = [];
+    _mediaRecorder = null;
+
+    const recUI = document.getElementById('recording-ui');
+    recUI.classList.add('hidden');
+    recUI.classList.remove('flex');
+}
+
+function stopAndSubmitRecording() {
+    if (!_mediaRecorder || _mediaRecorder.state === 'inactive') return;
+
+    _mediaRecorder.onstop = async () => {
+        // Stop mic stream
+        if (_recordingStream) _recordingStream.getTracks().forEach(t => t.stop());
+        if (_recordingTimer) clearInterval(_recordingTimer);
+
+        // Hide recording UI
+        const recUI = document.getElementById('recording-ui');
+        recUI.classList.add('hidden');
+        recUI.classList.remove('flex');
+
+        // Build the audio blob and submit via fetch
+        const blob = new Blob(_audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', window._csrfToken);
+        formData.append('audio_file', blob, 'voice_message.webm');
+        formData.append('content', '');
+
+        try {
+            const res = await fetch(window.location.href, { method: 'POST', body: formData });
+            if (res.ok || res.redirected) {
+                window.location.reload();
+            }
+        } catch(e) { console.error('Audio upload error:', e); }
+    };
+
+    _mediaRecorder.stop();
+}
+
+// ── Auto-scroll messages ──
+const chatBox = document.getElementById('chat-box');
+if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+// ── Start polling for incoming calls ──
+startIncomingCallPolling(window._roomName);
+</script>
+
+<style>
+.custom-scroll::-webkit-scrollbar { width: 4px; }
+.custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+.custom-scroll::-webkit-scrollbar-track { background: transparent; }
+@keyframes bounce-in {
+    0% { transform: scale(0.8); opacity: 0; }
+    60% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+.animate-bounce-in { animation: bounce-in 0.3s ease-out; }
+</style>
+{% endblock %}

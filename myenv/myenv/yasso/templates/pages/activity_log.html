@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}سجل النشاطات | FlowNest{% endblock %}
+
+{% block content %}
+<div class="px-4 py-8 max-w-7xl mx-auto sm:px-6 lg:px-8" dir="rtl">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-400">
+                <i class="fas fa-list-alt text-blue-500 ml-2"></i> سجل النشاطات والرقابة (Audit Log)
+            </h1>
+            <p class="text-gray-400 mt-2">تتبع جميع التغييرات والإجراءات التي تمت داخل النظام بدقة.</p>
+        </div>
+    </div>
+
+    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 shadow-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-gray-300">
+                <thead class="bg-gray-900/80 border-b border-gray-700">
+                    <tr>
+                        <th class="px-6 py-4 text-sm font-semibold">التاريخ والوقت</th>
+                        <th class="px-6 py-4 text-sm font-semibold">المستخدم</th>
+                        <th class="px-6 py-4 text-sm font-semibold">نوع الإجراء</th>
+                        <th class="px-6 py-4 text-sm font-semibold">التفاصيل</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-700/50">
+                    {% for log in logs %}
+                    <tr class="hover:bg-gray-700/20 transition-colors">
+                        <td class="px-6 py-4 text-sm text-gray-400" dir="ltr" style="text-align: right;">
+                            {{ log.timestamp|date:"Y-m-d h:i A" }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if log.user %}
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                                        {{ log.user.username|make_list|first|upper }}
+                                    </div>
+                                    <span class="font-medium">{{ log.user.username }}</span>
+                                </div>
+                            {% else %}
+                                <span class="text-gray-500"><i class="fas fa-robot ml-1"></i> النظام</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if log.action_type == 'create' %}
+                                <span class="px-3 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
+                                    <i class="fas fa-plus ml-1"></i> إنشاء
+                                </span>
+                            {% elif log.action_type == 'update' %}
+                                <span class="px-3 py-1 text-xs font-medium bg-amber-500/10 text-amber-400 rounded-full border border-amber-500/20">
+                                    <i class="fas fa-edit ml-1"></i> تعديل
+                                </span>
+                            {% elif log.action_type == 'delete' %}
+                                <span class="px-3 py-1 text-xs font-medium bg-rose-500/10 text-rose-400 rounded-full border border-rose-500/20">
+                                    <i class="fas fa-trash ml-1"></i> حذف
+                                </span>
+                            {% else %}
+                                <span class="px-3 py-1 text-xs font-medium bg-gray-500/10 text-gray-400 rounded-full border border-gray-500/20">
+                                    {{ log.get_action_type_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-400">
+                            {{ log.description }}
+                            <div class="text-xs text-gray-500 mt-1">المعرف: {{ log.model_name }} #{{ log.object_id }}</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-3 opacity-50 block"></i>
+                            لا توجد نشاطات مسجلة حتى الآن.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

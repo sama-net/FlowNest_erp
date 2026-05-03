@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-center min-h-[85vh] py-8">
+    <div class="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-8 md:p-10">
+        
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-2">
+                <i class="fas fa-user-plus text-primary mr-2"></i> إنشاء حساب جديد
+            </h2>
+            <p class="text-gray-400">انضم إلى نظام FlowNest ERP SaaS واشترك لشركتك، أو انضم كـ موظف/مدير</p>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            {% if error_message %}
+            <div class="flex items-center gap-3 bg-red-500/10 border border-red-500/40 rounded-2xl px-4 py-3 text-red-300">
+                <i class="fas fa-exclamation-triangle text-red-400 flex-shrink-0"></i>
+                <span class="text-sm">{{ error_message }}</span>
+            </div>
+            {% endif %}
+
+            {% if form.errors %}
+            <div class="bg-red-500/10 border border-red-500/40 rounded-2xl px-4 py-3 text-red-300 space-y-1">
+                <div class="flex items-center gap-3 mb-1">
+                    <i class="fas fa-times-circle text-red-400 flex-shrink-0"></i>
+                    <span class="text-sm font-bold">يرجى تصحيح الأخطاء التالية:</span>
+                </div>
+                <ul class="list-disc list-inside text-xs">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li>{{ field }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- User Identity Section -->
+                <div class="space-y-2 col-span-1 md:col-span-2">
+                    <label class="block text-sm font-black text-gray-300">الأسم بالكامل</label>
+                    <input type="text" id="full_name_input" name="full_name" required placeholder="ادخل اسمك الكامل هنا" class="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all">
+                </div>
+
+                <!-- Django Native Fields (Username will be auto-filled) -->
+                <div class="space-y-2 col-span-1 md:col-span-2 hidden">
+                    <label class="block text-sm font-medium text-gray-300">اسم المستخدم (للدخول فقط)</label>
+                    {{ form.username }}
+                </div>
+                
+                <div class="space-y-2 col-span-1 md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-300">كلمة المرور</label>
+                    {{ form.password }}
+                </div>
+
+                {% for field in form %}
+                    {% if field.name != 'username' and field.name != 'password' %}
+                    <div class="space-y-2 col-span-1 md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-300">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-red-400 text-xs mt-1">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-300">طبيعة الحساب (الدور)</label>
+                    <select id="role_select" name="role" class="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all" required onchange="toggleOwnerFields()">
+                        <option value="owner" {% if request.POST.role == "owner" %}selected{% endif %}>المالك (تسجيل شركة جديدة)</option>
+                        <option value="manager" {% if request.POST.role == "manager" %}selected{% endif %}>مدير إدارة</option>
+                        <option value="engineer" {% if request.POST.role == "engineer" %}selected{% endif %}>موظف / مهندس</option>
+                    </select>
+                </div>
+
+                <div id="sector_div" class="space-y-2 hidden">
+                    <label class="block text-sm font-medium text-gray-300">قطاع الشركة (Enterprise Sector)</label>
+                    <select name="sector" class="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all">
+                        <option value="corporate">شركات / تجاري (Corporate)</option>
+                        <option value="education">تعليمي / مدارس / جامعات (Education)</option>
+                        <option value="medical">طبي / مستشفيات / عيادات (Medical)</option>
+                        <option value="construction">إنشاءات / عقارات (Real Estate / Construction)</option>
+                    </select>
+                </div>
+
+                <div id="company_name_div" class="space-y-2 col-span-1 md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-300">اسم الشركة</label>
+                    <input type="text" list="existing-companies" id="company_input" name="company_name" value="{{ request.POST.company_name|default:'' }}" class="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all" placeholder="اختر من القائمة أو اكتب اسم الشركة" required autocomplete="off" onchange="loadDepartments()" oninput="loadDepartments()">
+                    <datalist id="existing-companies">
+                        {% for comp in existing_companies %}
+                            {% if comp %}
+                            <option value="{{ comp }}">
+                            {% endif %}
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div id="department_div" class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-300">الإدارة التي تعمل بها (Department)</label>
+                    <select name="department" id="department_select" class="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all">
+                        <option value="">برجاء اختيار أو كتابة الشركة أولاً لظهور الأقسام...</option>
+                    </select>
+                </div>
+
+                <!-- New: Owner-only fields -->
+                <div id="owner_details_div" class="space-y-4 col-span-1 md:col-span-2 hidden">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-300">مجال عمل الشركة / التخصص</label>
+                        <input type="text" name="industry" value="{{ request.POST.industry|default:'' }}" class="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all" placeholder="مثال: تصنيع أثاث، تجارة ملابس، تكنولوجيا معلومات...">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-300">نبذة مختصرة عن الشركة</label>
+                        <textarea name="company_description" rows="3" class="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all" placeholder="اكتب وصفاً موجزاً لنشاط الشركة...">{{ request.POST.company_description|default:'' }}</textarea>
+                    </div>
+                    
+                    <!-- New: Department Picker for Owners -->
+                    <div id="owner_depts_div" class="space-y-3 bg-white/5 p-5 rounded-2xl border border-white/5 animate-fade-in">
+                        <label class="block text-sm font-bold text-indigo-300 mb-2">تحديد إدارات الشركة (Departments Selection)</label>
+                        <p class="text-[10px] text-gray-500 mb-3">اختر الإدارات التي ترغب في تفعيلها لشركتك. سيتم إنشاء غرف شات ومساحات عمل لكل إدارة تختارها.</p>
+                        <div id="depts_checklist" class="grid grid-cols-2 gap-3">
+                            <!-- Dynamic checkboxes go here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="plan_div" class="space-y-2 col-span-1 md:col-span-2 hidden">
+                    <label class="block text-sm font-medium text-gray-300">باقة الاشتراك الخاصة بالشركة</label>
+                    <select name="plan" id="plan_select" onchange="toggleOwnerFields()" class="w-full bg-black/30 border border-indigo-500/50 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all">
+                        <option value="free" {% if request.POST.plan == "free" %}selected{% endif %}>مجاني (فترة تجريبية 7 أيام)</option>
+                        <option value="1_month" {% if request.POST.plan == "1_month" %}selected{% endif %}>شهر (8000 ج.م)</option>
+                        <option value="3_months" {% if request.POST.plan == "3_months" %}selected{% endif %}>ثلاثة أشهر (23000 ج.م)</option>
+                        <option value="1_year" {% if request.POST.plan == "1_year" %}selected{% endif %}>سنة (90000 ج.م)</option>
+                    </select>
+                </div>
+
+                <!-- New: Payment Details -->
+                <div id="payment_details_div" class="space-y-4 col-span-1 md:col-span-2 hidden bg-indigo-500/5 border border-indigo-500/20 p-6 rounded-2xl animate-fade-in">
+                    <h3 class="text-indigo-300 font-bold flex items-center gap-2 mb-2">
+                        <i class="fas fa-credit-card"></i> بيانات الدفع الإلكتروني
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="space-y-1">
+                            <label class="text-xs text-gray-400">رقم البطاقة</label>
+                            <input type="text" placeholder="#### #### #### ####" class="tracking-widest">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs text-gray-400">تاريخ الانتهاء</label>
+                                <input type="text" placeholder="MM / YY">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs text-gray-400">الرمز السري (CVV)</label>
+                                <input type="password" placeholder="***">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary hover:from-indigo-600 hover:to-pink-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/30 transition-all hover:scale-[1.02] mt-6">
+                تسجيل الحساب <i class="fas fa-check-circle mr-2"></i>
+            </button>
+        </form>
+
+        <div class="mt-8 text-center text-sm pt-6 border-t border-white/10">
+            <p class="text-gray-400">
+                لديك حساب بالفعل؟ 
+                <a href="{% url 'login' %}" class="font-bold text-primary hover:text-indigo-400 hover:underline transition-colors">تسجيل الدخول</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Quick style override for django form fields to match Tailwind -->
+<style>
+    form input:not([type="hidden"]) {
+        width: 100%; 
+        padding: 0.75rem 1rem; 
+        background-color: rgba(0,0,0,0.3); 
+        border: 1px solid rgba(255,255,255,0.1); 
+        color: white; 
+        border-radius: 0.75rem;
+        transition: all 0.3s;
+    }
+    form input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #6366f1;
+    }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<script>
+    function loadDepartments() {
+        const companyInput = document.getElementById('company_input');
+        const deptSelect = document.getElementById('department_select');
+        if (!companyInput || !deptSelect) return;
+        
+        const companyName = companyInput.value;
+        if (!companyName) return;
+
+        fetch(`/api/get-departments/?company_name=${encodeURIComponent(companyName)}`)
+            .then(response => response.json())
+            .then(data => {
+                deptSelect.innerHTML = '<option value="">اختر الإدارة...</option>';
+                data.departments.forEach(dept => {
+                    const opt = document.createElement('option');
+                    opt.value = dept.id;
+                    opt.textContent = dept.name;
+                    deptSelect.appendChild(opt);
+                });
+            })
+            .catch(err => {
+                console.error("Error loading departments:", err);
+            });
+    }
+
+    const sectorDepts = {{ sector_depts|safe }};
+
+    function updateDeptsChecklist() {
+        const sector = document.querySelector('select[name="sector"]').value;
+        const checklist = document.getElementById('depts_checklist');
+        const depts = sectorDepts[sector] || [];
+        
+        checklist.innerHTML = '';
+        depts.forEach(d => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2 bg-black/20 p-2 rounded-lg border border-white/5 hover:border-primary/30 transition-all cursor-pointer';
+            div.innerHTML = `
+                <input type="checkbox" name="selected_depts" value="${d}" id="dept_${d}" checked class="checkbox checkbox-primary checkbox-xs">
+                <label for="dept_${d}" class="text-xs text-gray-300 cursor-pointer flex-1">${d}</label>
+            `;
+            checklist.appendChild(div);
+        });
+    }
+
+    function toggleOwnerFields() {
+        const roleEl = document.getElementById('role_select');
+        if (!roleEl) return;
+        const role = roleEl.value;
+        const planDiv = document.getElementById('plan_div');
+        const planSelect = document.getElementById('plan_select');
+        const paymentDiv = document.getElementById('payment_details_div');
+        const ownerDetailsDiv = document.getElementById('owner_details_div');
+        const companyDiv = document.getElementById('company_name_div');
+        const departmentDiv = document.getElementById('department_div');
+        const sectorDiv = document.getElementById('sector_div');
+        const companyInput = document.getElementById('company_input');
+        const departmentSelect = document.getElementById('department_select');
+
+        if (role === 'owner') {
+            planDiv.classList.remove('hidden');
+            ownerDetailsDiv.classList.remove('hidden');
+            sectorDiv.classList.remove('hidden');
+            departmentDiv.classList.add('hidden');
+            updateDeptsChecklist();
+            
+            if (planSelect && planSelect.value !== 'free') {
+                paymentDiv.classList.remove('hidden');
+            } else {
+                paymentDiv.classList.add('hidden');
+            }
+        } else {
+            planDiv.classList.add('hidden');
+            ownerDetailsDiv.classList.add('hidden');
+            sectorDiv.classList.add('hidden');
+            paymentDiv.classList.add('hidden');
+            departmentDiv.classList.remove('hidden');
+        }
+    }
+
+    // --- AUTO USERNAME GENERATION ---
+    const fullNameInput = document.getElementById('full_name_input');
+    if (fullNameInput) {
+        fullNameInput.addEventListener('input', function() {
+            const fullName = this.value;
+            // Clean name: lower case, replace spaces with underscores
+            let safeUsername = fullName.toLowerCase().trim()
+                .replace(/\s+/g, '_')
+                .replace(/[^\w\s_]/g, '');
+                
+            const usernameInput = document.querySelector('input[name="username"]');
+            if (usernameInput) {
+                usernameInput.value = safeUsername;
+            }
+        });
+    }
+
+    // Bind sector change to update checklist
+    const sectorEl = document.querySelector('select[name="sector"]');
+    if (sectorEl) sectorEl.addEventListener('change', updateDeptsChecklist);
+
+    // Initialize state
+    document.addEventListener("DOMContentLoaded", () => {
+        toggleOwnerFields();
+        loadDepartments();
+    });
+</script>
+{% endblock %}

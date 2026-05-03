@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+myenv/myenv/Include/
+myenv/myenv/Lib/
+myenv/myenv/Scripts/
+myenv/myenv/share/
+myenv/myenv/pyvenv.cfg
+
+# Databases
+*.sqlite3
+db.sqlite3
+
+# Data & Media (Excluding large files)
+*.xlsx
+*.xls
+*.csv
+*.pt
+*.pdf
+media/
+static/staticfiles/
+myenv/flownest_dashboard/flownest/uploads/
+myenv/myenv/yasso/media/
+myenv/myenv/yasso/chroma_db/
+myenv/myenv/yasso/erp_chroma_db/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.railwayignore
+
+# Large models/cache
+.cache/
+hf_home/
+sentence_transformers/

@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="p-6 space-y-8 animate-fade-in-up">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+                مركز المستندات
+            </h1>
+            <p class="text-gray-400 mt-1 text-sm">ارفع ملفات PDF أو Excel أو CSV — يمكنك رفع عدة ملفات معاً</p>
+        </div>
+        <div class="text-sm text-gray-500">
+            <i class="fas fa-building ml-1 text-indigo-400"></i>
+            {{ request.user.profile.company_name }}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- ── Upload Form ── -->
+        <div class="lg:col-span-2">
+            <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-xl h-full">
+                <h2 class="text-lg font-bold text-white mb-5 border-b border-white/10 pb-3 flex items-center gap-2">
+                    <i class="fas fa-cloud-upload-alt text-primary"></i> رفع ملفات جديدة
+                </h2>
+
+                <form method="post" enctype="multipart/form-data" class="space-y-4" id="upload-form" onsubmit="handleUpload(event)">
+                    {% csrf_token %}
+
+                    <!-- Department selectors -->
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-300">الإدارة المصدرة (إدارتك)</label>
+                        <select name="source_department" required
+                            class="w-full bg-black/30 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="finance">مالية</option>
+                            <option value="production">إنتاج</option>
+                            <option value="general">إدارة عامة</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-300">إدارة الوجهة (من يرى الملف)</label>
+                        <select name="target_department" required
+                            class="w-full bg-black/30 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="finance">مالية</option>
+                            <option value="production">إنتاج</option>
+                            <option value="general">إدارة عامة</option>
+                        </select>
+                    </div>
+
+                    <!-- File drop zone -->
+                    <div id="drop-zone"
+                        class="border-2 border-dashed border-white/20 rounded-2xl p-6 text-center cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all"
+                        onclick="document.getElementById('file-input').click()"
+                        ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFiles(event)">
+                        <i class="fas fa-file-upload text-3xl text-indigo-400 mb-3 block"></i>
+                        <p class="text-white text-sm font-semibold">اضغط أو اسحب الملفات هنا</p>
+                        <p class="text-gray-500 text-xs mt-1">PDF, Excel, CSV — ملفات متعددة مدعومة</p>
+                        <div id="selected-files" class="mt-3 space-y-1"></div>
+                    </div>
+                    <input type="file" id="file-input" name="file" multiple accept=".pdf,.xlsx,.xls,.csv"
+                        class="hidden" onchange="showSelectedFiles(this.files)">
+
+                    <button type="submit" id="upload-btn"
+                        class="w-full bg-gradient-to-r from-primary to-secondary hover:from-indigo-600 hover:to-pink-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-500/30 transition-all hover:scale-[1.02] flex justify-center items-center gap-2">
+                        <span id="btn-text">رفع الملفات</span>
+                        <i class="fas fa-file-upload" id="btn-icon"></i>
+                    </button>
+                    <div id="upload-progress" class="hidden">
+                        <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                            <div id="progress-bar" class="h-2 bg-gradient-to-r from-primary to-secondary rounded-full transition-all" style="width:0%"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1 text-center" id="progress-text">جاري الرفع...</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ── Files List ── -->
+        <div class="lg:col-span-3">
+            <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-xl h-full flex flex-col">
+                <div class="p-5 border-b border-white/10 flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-folder-open text-primary"></i> الملفات المرفوعة
+                    </h2>
+                    <span class="text-xs text-gray-500">{{ files|length }} ملف</span>
+                </div>
+
+                <div class="p-5 flex-1 overflow-auto">
+                    {% if files %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {% for f in files %}
+                        <div class="bg-black/30 border border-white/5 rounded-2xl p-4 hover:border-primary/40 transition-colors group">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+                                    {% if f.file_type == 'pdf' %}bg-red-500/20 text-red-400
+                                    {% elif f.file_type == 'csv' %}bg-blue-500/20 text-blue-400
+                                    {% else %}bg-green-500/20 text-green-400{% endif %}">
+                                    {% if f.file_type == 'pdf' %}
+                                        <i class="fas fa-file-pdf text-lg"></i>
+                                    {% elif f.file_type == 'csv' %}
+                                        <i class="fas fa-file-csv text-lg"></i>
+                                    {% else %}
+                                        <i class="fas fa-file-excel text-lg"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-white text-sm font-semibold truncate" title="{{ f.file.name }}">
+                                        {{ f.file.name|slice:"14:" }}
+                                    </p>
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        {{ f.get_source_department_display }} → {{ f.get_target_department_display }}
+                                    </p>
+                                    <p class="text-xs text-gray-600 mt-0.5">
+                                        <i class="fas fa-user text-xs ml-1"></i>{{ f.uploaded_by.username }} · {{ f.uploaded_at|date:"d/m H:i" }}
+                                    </p>
+                                </div>
+                            </div>
+                                <div class="flex gap-2">
+                                    <a href="{{ f.file.url }}"
+                                        class="flex-1 text-center text-xs bg-white/5 hover:bg-primary/20 border border-white/10 text-gray-300 hover:text-white px-2 py-1.5 rounded-lg transition-colors">
+                                        <i class="fas fa-download ml-1"></i> تحميل
+                                    </a>
+                                    {% if request.user.profile.role != 'engineer' %}
+                                    <a href="{% url 'analyze_file' f.id %}"
+                                        class="flex-1 text-center text-xs bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/20 text-indigo-300 hover:text-white px-2 py-1.5 rounded-lg transition-colors">
+                                        <i class="fas fa-microscope ml-1"></i> تحليل
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'delete_file' f.id %}" onclick="return confirm('هل أنت متأكد من مسح هذا الملف؟')"
+                                        class="w-10 flex items-center justify-center text-xs bg-red-500/10 hover:bg-red-500 border border-red-500/20 text-red-400 hover:text-white px-1.5 py-1.5 rounded-lg transition-all shadow-lg shadow-red-500/10">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="flex flex-col items-center justify-center text-gray-500 h-full min-h-[200px]">
+                        <i class="fas fa-box-open text-5xl mb-4 opacity-40"></i>
+                        <p>لا توجد ملفات مرفوعة حتى الآن</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+select, input[type="file"] {
+    color-scheme: dark;
+}
+#drop-zone.drag-over {
+    border-color: #6366f1;
+    background: rgba(99,102,241,0.08);
+}
+</style>
+
+<script>
+function showSelectedFiles(files) {
+    const container = document.getElementById('selected-files');
+    container.innerHTML = '';
+    Array.from(files).forEach(f => {
+        const size = (f.size / 1024).toFixed(1);
+        container.innerHTML += `<div class="flex items-center gap-2 text-xs text-gray-300 bg-white/5 rounded-lg px-3 py-1">
+            <i class="fas fa-file text-indigo-400"></i>
+            <span class="truncate max-w-[150px]">${f.name}</span>
+            <span class="text-gray-500 flex-shrink-0">${size} KB</span>
+        </div>`;
+    });
+}
+
+function dragOver(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.add('drag-over');
+}
+function dragLeave(e) {
+    document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function dropFiles(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag-over');
+    const input = document.getElementById('file-input');
+    const dt = e.dataTransfer;
+    // Assign dropped files via DataTransfer
+    try {
+        input.files = dt.files;
+    } catch(err) {
+        // Fallback: just trigger the file picker
+    }
+    showSelectedFiles(dt.files);
+}
+
+function handleUpload(e) {
+    e.preventDefault();
+    const input = document.getElementById('file-input');
+    if (!input.files.length) { alert('الرجاء اختيار ملف واحد على الأقل'); return; }
+
+    const btn = document.getElementById('upload-btn');
+    const btnText = document.getElementById('btn-text');
+    const progress = document.getElementById('upload-progress');
+    const bar = document.getElementById('progress-bar');
+    const pText = document.getElementById('progress-text');
+
+    btn.disabled = true;
+    btnText.textContent = 'جاري الرفع...';
+    progress.classList.remove('hidden');
+
+    const form = document.getElementById('upload-form');
+    const formData = new FormData(form);
+
+    // Simulate progress (XHR for real progress)
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', window.location.href);
+    xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+
+    xhr.upload.onprogress = (ev) => {
+        if (ev.lengthComputable) {
+            const pct = Math.round(ev.loaded / ev.total * 100);
+            bar.style.width = pct + '%';
+            pText.textContent = `جاري الرفع... ${pct}%`;
+        }
+    };
+
+    xhr.onload = () => {
+        bar.style.width = '100%';
+        pText.textContent = 'تم الرفع! جاري التحديث...';
+        setTimeout(() => window.location.reload(), 600);
+    };
+
+    xhr.onerror = () => {
+        btn.disabled = false;
+        btnText.textContent = 'رفع الملفات';
+        pText.textContent = 'حدث خطأ. حاول مرة أخرى.';
+    };
+
+    xhr.send(formData);
+}
+</script>
+{% endblock %}

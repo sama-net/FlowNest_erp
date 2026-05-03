@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-2 space-y-6 animate-fade-in-up">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
+                📋 لوحة المهام
+            </h1>
+            <p class="text-gray-400 text-sm mt-1">تتبع المهام المطلوبة منك والمهام التي أوكلتها للفريق</p>
+        </div>
+        <button onclick="openTaskModal()"
+            class="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-lg transition-all hover:scale-105 flex items-center gap-2 text-sm">
+            <i class="fas fa-plus"></i> مهمة جديدة
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- MY TASKS (tasks assigned to me) -->
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-xl overflow-hidden">
+            <div class="p-5 border-b border-white/10 flex items-center gap-3">
+                <div class="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-user-check text-indigo-400"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white">مهامي</h2>
+                    <p class="text-xs text-gray-500">المهام المطلوبة منك</p>
+                </div>
+                <span class="mr-auto bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-1 rounded-full">
+                    {{ tasks_my|length }}
+                </span>
+            </div>
+            <div class="p-4 space-y-3 max-h-[500px] overflow-y-auto">
+                {% if not tasks_my %}
+                <div class="text-center text-gray-600 py-8">
+                    <i class="fas fa-check-circle text-3xl mb-2 opacity-30"></i>
+                    <p class="text-sm">لا توجد مهام معلقة 🎉</p>
+                </div>
+                {% endif %}
+                {% for task in tasks_my %}
+                <div class="bg-black/30 border border-white/5 rounded-2xl p-4 hover:border-indigo-500/30 transition-all group" id="task-card-{{ task.id }}">
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <!-- Priority badge -->
+                                <span class="text-xs px-2 py-0.5 rounded-full font-bold
+                                    {% if task.priority == 'high' %}bg-red-500/20 text-red-400 border border-red-500/20
+                                    {% elif task.priority == 'medium' %}bg-yellow-500/20 text-yellow-400 border border-yellow-500/20
+                                    {% else %}bg-green-500/20 text-green-400 border border-green-500/20{% endif %}">
+                                    {% if task.priority == 'high' %}🔴{% elif task.priority == 'medium' %}🟡{% else %}🟢{% endif %}
+                                    {{ task.get_priority_display }}
+                                </span>
+                                <!-- Status badge -->
+                                <span class="text-xs px-2 py-0.5 rounded-full
+                                    {% if task.status == 'done' %}bg-green-500/20 text-green-400
+                                    {% elif task.status == 'in_progress' %}bg-blue-500/20 text-blue-400
+                                    {% else %}bg-gray-500/20 text-gray-400{% endif %}">
+                                    {% if task.status == 'done' %}✅{% elif task.status == 'in_progress' %}⏳{% else %}🕐{% endif %}
+                                    {{ task.get_status_display }}
+                                </span>
+                            </div>
+                            <h3 class="font-bold text-white mt-1.5 text-sm">{{ task.title }}</h3>
+                            {% if task.description %}
+                            <p class="text-gray-400 text-xs mt-1 leading-relaxed">{{ task.description }}</p>
+                            {% endif %}
+                            <div class="flex items-center gap-3 mt-2 text-xs text-gray-600">
+                                <span><i class="fas fa-user ml-1"></i>من: {{ task.assigned_by.get_full_name|default:task.assigned_by.username }}</span>
+                                {% if task.due_date %}
+                                <span><i class="fas fa-calendar ml-1"></i>{{ task.due_date }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status update buttons -->
+                    {% if task.status != 'done' %}
+                    <div class="flex gap-2 mt-3">
+                        {% if task.status == 'pending' %}
+                        <button onclick="updateTaskStatus({{ task.id }}, 'in_progress')"
+                            class="flex-1 text-xs bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/20 text-blue-300 py-1.5 rounded-lg transition-all">
+                            <i class="fas fa-play ml-1"></i> بدء التنفيذ
+                        </button>
+                        {% endif %}
+                        <button onclick="updateTaskStatus({{ task.id }}, 'done')"
+                            class="flex-1 text-xs bg-green-500/20 hover:bg-green-500/40 border border-green-500/20 text-green-300 py-1.5 rounded-lg transition-all">
+                            <i class="fas fa-check ml-1"></i> تم الإنجاز
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="mt-2 text-xs text-green-400 flex items-center gap-1">
+                        <i class="fas fa-check-circle"></i> أنجزت هذه المهمة
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- TASKS I ASSIGNED (manager/owner view) -->
+        {% if profile.role == 'owner' or profile.role == 'developer' or profile.role == 'manager' %}
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-xl overflow-hidden">
+            <div class="p-5 border-b border-white/10 flex items-center gap-3">
+                <div class="w-9 h-9 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-clipboard-list text-yellow-400"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white">مهام الفريق</h2>
+                    <p class="text-xs text-gray-500">المهام التي أوكلتها للفريق</p>
+                </div>
+                <span class="mr-auto bg-yellow-500/20 text-yellow-300 text-xs font-bold px-2 py-1 rounded-full">
+                    {{ tasks_assigned|length }}
+                </span>
+            </div>
+            <div class="p-4 space-y-3 max-h-[500px] overflow-y-auto">
+                {% if not tasks_assigned %}
+                <div class="text-center text-gray-600 py-8">
+                    <i class="fas fa-tasks text-3xl mb-2 opacity-30"></i>
+                    <p class="text-sm">لم تُرسل أي مهام بعد</p>
+                </div>
+                {% endif %}
+                {% for task in tasks_assigned %}
+                <div class="bg-black/30 border border-white/5 rounded-2xl p-4 hover:border-yellow-500/20 transition-all" id="team-task-{{ task.id }}">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap mb-1">
+                                <span class="text-xs px-2 py-0.5 rounded-full font-bold
+                                    {% if task.priority == 'high' %}bg-red-500/20 text-red-400
+                                    {% elif task.priority == 'medium' %}bg-yellow-500/20 text-yellow-400
+                                    {% else %}bg-green-500/20 text-green-400{% endif %}">
+                                    {{ task.get_priority_display }}
+                                </span>
+                                <span class="text-xs px-2 py-0.5 rounded-full
+                                    {% if task.status == 'done' %}bg-green-500/20 text-green-400
+                                    {% elif task.status == 'in_progress' %}bg-blue-500/20 text-blue-400
+                                    {% else %}bg-gray-500/20 text-gray-400{% endif %}">
+                                    {% if task.status == 'done' %}✅ مكتملة
+                                    {% elif task.status == 'in_progress' %}⏳ جاري
+                                    {% else %}🕐 قيد الانتظار{% endif %}
+                                </span>
+                            </div>
+                            <h3 class="font-bold text-white text-sm">{{ task.title }}</h3>
+                            {% if task.description %}
+                            <p class="text-gray-400 text-xs mt-0.5">{{ task.description }}</p>
+                            {% endif %}
+                            <div class="flex items-center gap-3 mt-1.5 text-xs text-gray-600">
+                                <span><i class="fas fa-user ml-1 text-indigo-400"></i>
+                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+                                </span>
+                                {% if task.due_date %}
+                                <span><i class="fas fa-calendar ml-1 text-red-400"></i>{{ task.due_date }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <button onclick="deleteTask({{ task.id }})" class="text-red-400/30 hover:text-red-400 transition-colors flex-shrink-0" title="حذف">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- Progress bar based on status -->
+                    <div class="mt-3 w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                        <div class="h-1.5 rounded-full transition-all
+                            {% if task.status == 'done' %}bg-green-500 w-full
+                            {% elif task.status == 'in_progress' %}bg-blue-500 w-1/2
+                            {% else %}bg-gray-600 w-0{% endif %}">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Task creation modal -->
+<div id="task-modal" class="hidden fixed inset-0 z-[999] flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeTaskModal()"></div>
+    <div class="relative bg-gray-900 border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl z-10">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fas fa-tasks text-yellow-400"></i> إنشاء مهمة جديدة
+            </h3>
+            <button onclick="closeTaskModal()" class="text-gray-400 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="task-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">عنوان المهمة *</label>
+                <input type="text" id="task-title" required
+                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-all"
+                    placeholder="عنوان مختصر للمهمة">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">التفاصيل</label>
+                <textarea id="task-desc" rows="3"
+                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-all resize-none"
+                    placeholder="وصف المهمة المطلوبة بالتفصيل..."></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">الموظف المكلَّف *</label>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 text-xs text-yellow-500 cursor-pointer bg-yellow-500/10 p-2 rounded-lg border border-yellow-500/20">
+                            <input type="checkbox" id="task-all-toggle" onchange="toggleAllAssignees()" class="checkbox checkbox-xs checkbox-warning">
+                            <span>✅ إسناد للكل (Broadcast to All)</span>
+                        </label>
+                        <select id="task-assignee" multiple required
+                            class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 custom-scroll opacity-100 transition-opacity"
+                            style="min-height: 100px;">
+                            {% for u in company_users %}
+                            <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }} ({{ u.profile.get_role_display }})</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[9px] text-gray-500">استخدم Ctrl + Click للاختيار المتعدد</p>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">الأولوية</label>
+                    <select id="task-priority"
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500">
+                        <option value="low">🟢 منخفضة</option>
+                        <option value="medium" selected>🟡 متوسطة</option>
+                        <option value="high">🔴 عالية</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">تاريخ الانتهاء</label>
+                <input type="date" id="task-due"
+                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+            <button type="submit"
+                class="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-3 rounded-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-2">
+                <i class="fas fa-paper-plane"></i> إرسال المهمة
+            </button>
+        </form>
+        <div id="task-success" class="hidden mt-3 text-center text-green-400 text-sm font-bold">✅ تم إرسال المهمة!</div>
+    </div>
+</div>
+
+<script>
+function toggleAllAssignees() {
+    const isAll = document.getElementById('task-all-toggle').checked;
+    const select = document.getElementById('task-assignee');
+    select.disabled = isAll;
+    select.style.opacity = isAll ? '0.3' : '1';
+    if(isAll) select.required = false; else select.required = true;
+}
+
+function openTaskModal()  { document.getElementById('task-modal').classList.remove('hidden'); }
+function closeTaskModal() { document.getElementById('task-modal').classList.add('hidden'); document.getElementById('task-success').classList.add('hidden'); }
+
+document.getElementById('task-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const isAll = document.getElementById('task-all-toggle').checked;
+    let assignees = [];
+    if (isAll) {
+        assignees = 'ALL';
+    } else {
+        assignees = Array.from(document.getElementById('task-assignee').selectedOptions).map(opt => opt.value);
+    }
+
+    if (!isAll && assignees.length === 0) return alert('برجاء اختيار موظف واحد على الأقل.');
+
+    const res = await fetch('{% url "chat:create_task" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({
+            title: document.getElementById('task-title').value.trim(),
+            description: document.getElementById('task-desc').value.trim(),
+            assigned_to: assignees,
+            priority: document.getElementById('task-priority').value,
+            due_date: document.getElementById('task-due').value,
+        })
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+        document.getElementById('task-success').classList.remove('hidden');
+        document.getElementById('task-form').reset();
+        setTimeout(() => { closeTaskModal(); location.reload(); }, 1500);
+    } else {
+        alert(data.error || 'حدث خطأ');
+    }
+});
+</script>
+
+<script>
+async function updateTaskStatus(taskId, status) {
+    const res = await fetch(`/chat/tasks/${taskId}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (data.status === 'ok') location.reload();
+    else alert('حدث خطأ: ' + (data.error || ''));
+}
+
+async function deleteTask(taskId) {
+    if (!confirm('هل تريد حذف هذه المهمة؟')) return;
+    const res = await fetch(`/chat/tasks/${taskId}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    });
+    const data = await res.json();
+    if (data.status === 'deleted') {
+        document.getElementById(`team-task-${taskId}`)?.remove();
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="p-6 space-y-8 animate-fade-in-up flex justify-center">
+    <div class="w-full max-w-2xl">
+        <!-- Header -->
+        <div class="mb-8 text-center">
+            <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+                الملف الشخصي للشركة
+            </h1>
+            <p class="text-gray-400 mt-2">إدارة إعدادات حسابك واشتراكك في FlowNest ERP</p>
+        </div>
+
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-xl">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% for field in form %}
+                    <div class="space-y-2 {% if field.name == 'company_name' %}col-span-1 md:col-span-2{% endif %}">
+                        <label class="block text-sm font-medium text-gray-300">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-red-400 text-xs mt-1">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="pt-6 border-t border-white/10 flex justify-end">
+                    <button type="submit" class="bg-gradient-to-r from-primary to-secondary hover:from-indigo-600 hover:to-pink-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-indigo-500/30 transition-all hover:scale-[1.02] flex items-center gap-2">
+                        <span>حفظ التعديلات</span> <i class="fas fa-save"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="mt-8 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-6 text-center">
+            <h3 class="text-lg font-bold text-indigo-400 mb-2"><i class="fas fa-shield-alt mr-2"></i> مستوى الصلاحيات</h3>
+            <p class="text-gray-300 text-sm">أنت مسجل بصفة: 
+                <span class="font-bold text-white px-2 py-1 bg-black/40 rounded-lg mx-2">{{ request.user.profile.get_role_display }}</span>
+                بحالة الاعتماد: 
+                {% if request.user.profile.is_approved %}
+                    <span class="text-green-400 font-bold ml-1"><i class="fas fa-check-circle"></i> معتمد</span>
+                {% else %}
+                    <span class="text-yellow-400 font-bold ml-1"><i class="fas fa-clock"></i> في انتظار الاعتماد</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Styling overrides for Django ModelForm */
+    form input[type="text"],
+    form select {
+        width: 100%; 
+        padding: 0.75rem 1rem; 
+        background-color: rgba(0,0,0,0.3); 
+        border: 1px solid rgba(255,255,255,0.1); 
+        color: white; 
+        border-radius: 0.75rem;
+        transition: all 0.3s;
+    }
+    form select:focus, form input[type="text"]:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #6366f1;
+    }
+    /* Hide some fields if needed, or make them read-only visually */
+    form input[type="checkbox"] {
+        margin-left: 0.5rem;
+        transform: scale(1.2);
+        accent-color: #6366f1;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="animate-fade-in-up">
+    
+    <!-- Welcome Header: Refined & Thinner -->
+    <div class="bg-gradient-to-r from-primary/10 to-transparent border border-white/5 rounded-3xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between shadow-lg relative overflow-hidden">
+        <div class="relative z-10 text-right">
+            <h1 class="text-2xl font-black text-white">
+                مساحة القيادة: <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">{{ profile.company_name }}</span>
+            </h1>
+            <p class="text-gray-500 mt-1 text-sm">
+                القائد المتصل الآن: <span class="text-white/80">{{ request.user.username }}</span>
+            </p>
+        </div>
+        <div class="hidden md:flex gap-2">
+           <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-xs font-bold text-gray-400">
+               {{ profile.get_sector_display }}
+           </div>
+           <div class="px-4 py-2 bg-primary/20 rounded-xl border border-primary/30 text-xs font-bold text-primary">
+               {{ profile.get_role_display }}
+           </div>
+        </div>
+    </div>
+    {% if profile.role == 'developer' %}
+    <!-- ─── SaaS ADMINISTRATION DASHBOARD ──────────────────────────────── -->
+    <div class="space-y-10 pb-20">
+        
+        <!-- Header Section -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
+            <div>
+                <h1 class="text-4xl font-black text-white mb-2">إدارة منصة FlowNest</h1>
+                <p class="text-gray-500 font-bold">مركز التحكم الشامل في أعمال SaaS والنمو</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="bg-indigo-500/10 border border-indigo-500/20 px-6 py-3 rounded-2xl flex items-center gap-4">
+                    <span class="w-3 h-3 bg-indigo-500 rounded-full animate-pulse"></span>
+                    <span class="text-indigo-400 font-black text-sm">النظام يعمل بكفاءة</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Grid: Business Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- MRR Card -->
+            <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-[2.5rem] p-8 relative overflow-hidden group">
+                <i class="fas fa-money-bill-wave absolute -right-4 -bottom-4 text-emerald-500/10 text-7xl rotate-12 group-hover:scale-110 transition-transform"></i>
+                <p class="text-[10px] font-black tracking-widest text-emerald-500 uppercase mb-4">الدخل الشهري المتوقع (MRR)</p>
+                <h3 class="text-3xl font-black text-white mb-1">{{ saas_stats.mrr_estimate }} <span class="text-sm font-bold text-gray-500">ج.م</span></h3>
+                <div class="mt-4 flex items-center gap-2 text-emerald-400 text-xs font-bold">
+                    <i class="fas fa-arrow-up"></i> تقدير مبني على الباقات
+                </div>
+            </div>
+
+            <!-- Active Trials Card -->
+            <div class="bg-indigo-500/5 border border-indigo-500/20 rounded-[2.5rem] p-8 relative overflow-hidden group">
+                <i class="fas fa-hourglass-half absolute -right-4 -bottom-4 text-indigo-500/10 text-7xl rotate-12 group-hover:scale-110 transition-transform"></i>
+                <p class="text-[10px] font-black tracking-widest text-indigo-500 uppercase mb-4">فترات تجريبية نشطة</p>
+                <h3 class="text-3xl font-black text-white mb-1">{{ saas_stats.active_trials }}</h3>
+                <div class="mt-4 flex items-center gap-2 text-indigo-400 text-xs font-bold">
+                    <i class="fas fa-clock"></i> {{ saas_stats.expired_trials }} انتهت صلاحيتهم
+                </div>
+            </div>
+
+            <!-- Premium Customers Card -->
+            <div class="bg-amber-500/5 border border-amber-500/20 rounded-[2.5rem] p-8 relative overflow-hidden group">
+                <i class="fas fa-crown absolute -right-4 -bottom-4 text-amber-500/10 text-7xl rotate-12 group-hover:scale-110 transition-transform"></i>
+                <p class="text-[10px] font-black tracking-widest text-amber-500 uppercase mb-4">مشتركين بريميوم</p>
+                <h3 class="text-3xl font-black text-white mb-1">{{ saas_stats.premium_customers }}</h3>
+                <div class="mt-4 flex items-center gap-2 text-amber-400 text-xs font-bold">
+                    <i class="fas fa-gem"></i> باقات مدفوعة مفعلة
+                </div>
+            </div>
+
+            <!-- Total Companies Card -->
+            <div class="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden group">
+                <i class="fas fa-building absolute -right-4 -bottom-4 text-white/5 text-7xl rotate-12 group-hover:scale-110 transition-transform"></i>
+                <p class="text-[10px] font-black tracking-widest text-gray-400 uppercase mb-4">إجمالي الشركات</p>
+                <h3 class="text-3xl font-black text-white mb-1">{{ saas_stats.total_companies }}</h3>
+                <div class="mt-4 flex items-center gap-2 text-gray-400 text-xs font-bold">
+                    <i class="fas fa-network-wired"></i> عبر جميع القطاعات
+                </div>
+            </div>
+        </div>
+
+        <!-- Secondary Stats & Table Layer -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            
+            <!-- Platform Stats Sidebar -->
+            <div class="space-y-6">
+                <div class="bg-[#111827] border border-white/5 rounded-[3rem] p-10">
+                    <h3 class="text-xl font-black text-white mb-8">إحصائيات النظام</h3>
+                    <div class="space-y-8">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-400 font-bold">إجمالي المستخدمين</span>
+                            <span class="text-white font-black">{{ saas_stats.total_users }}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-indigo-400">
+                            <span class="font-bold">موافقات معلقة</span>
+                            <span class="font-black flex items-center gap-2">
+                                {{ saas_stats.pending_approvals }}
+                                <a href="{% url 'approvals' %}" class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all">
+                                    <i class="fas fa-external-link-alt text-[10px]"></i>
+                                </a>
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-400 font-bold">ملفات مرفوعة</span>
+                            <span class="text-white font-black">{{ saas_stats.total_files }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-indigo-600 to-primary rounded-[3rem] p-10 text-white relative overflow-hidden">
+                    <i class="fas fa-rocket absolute -right-4 -bottom-4 text-white/10 text-9xl"></i>
+                    <h3 class="text-2xl font-black mb-4">التوسع القادم</h3>
+                    <p class="text-white/80 font-bold leading-relaxed mb-8">يتم العمل حالياً على أتمتة قفل الحسابات المنتهية وتنبيهات الدفع التلقائية.</p>
+                </div>
+            </div>
+
+            <!-- Customer Management Table -->
+            <div class="xl:col-span-2">
+                <div class="bg-[#111827] border border-white/5 rounded-[3rem] p-10 overflow-hidden">
+                    <div class="flex items-center justify-between mb-8 px-4">
+                        <h3 class="text-2xl font-black text-white">آخر الانضمامات</h3>
+                        <div class="h-px flex-1 mx-8 bg-gradient-to-r from-white/10 to-transparent"></div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-separate border-spacing-y-4">
+                            <thead>
+                                <tr class="text-gray-500 text-[10px] uppercase tracking-widest font-black">
+                                    <th class="px-6 pb-2">الشركة</th>
+                                    <th class="px-6 pb-2">المالك / البريد</th>
+                                    <th class="px-6 pb-2">الباقة</th>
+                                    <th class="px-6 pb-2">العمر / التجربة</th>
+                                    <th class="px-6 pb-2">الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cust in recent_customers %}
+                                <tr class="group text-sm">
+                                    <td class="bg-white/[0.02] rounded-r-2xl px-6 py-5 border-y border-r border-white/5 group-hover:bg-white/5 transition-colors">
+                                        <div class="font-black text-white">{{ cust.company }}</div>
+                                        <div class="text-[10px] text-gray-500 mt-1 uppercase">{{ cust.joined|date:"M Y" }}</div>
+                                    </td>
+                                    <td class="bg-white/[0.02] px-6 py-5 border-y border-white/5 group-hover:bg-white/5 transition-colors">
+                                        <div class="text-gray-300 font-bold">{{ cust.owner }}</div>
+                                        <div class="text-[10px] text-gray-500">{{ cust.email }}</div>
+                                    </td>
+                                    <td class="bg-white/[0.02] px-6 py-5 border-y border-white/5 group-hover:bg-white/5 transition-colors">
+                                        <span class="px-3 py-1 rounded-full text-[10px] font-black 
+                                            {% if cust.plan_key == 'free' %}bg-white/10 text-white/60{% else %}bg-amber-500/20 text-amber-500 border border-amber-500/20{% endif %}">
+                                            {{ cust.plan }}
+                                        </span>
+                                    </td>
+                                    <td class="bg-white/[0.02] px-6 py-5 border-y border-white/5 group-hover:bg-white/5 transition-colors">
+                                        <div class="text-gray-400 font-bold">{{ cust.duration }} يوم</div>
+                                        {% if cust.plan_key == 'free' %}
+                                            {% if cust.is_expired %}
+                                                <div class="text-[9px] text-red-500 font-black uppercase mt-1">منتهية (Expired)</div>
+                                            {% else %}
+                                                <div class="text-[9px] text-green-500 font-black uppercase mt-1">نشطة (Active)</div>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td class="bg-white/[0.02] rounded-l-2xl px-6 py-5 border-y border-l border-white/5 group-hover:bg-white/5 transition-colors">
+                                        {% if cust.is_approved %}
+                                            <span class="text-emerald-500 flex items-center gap-2 font-bold"><i class="fas fa-check-circle"></i> مفعل</span>
+                                        {% else %}
+                                            <span class="text-amber-500 flex items-center gap-2 font-bold"><i class="fas fa-clock"></i> معلق</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+{% else %}
+    <!-- ─── STANDARD COMPANY DASHBOARD (Owner/Manager) ─────────────────── -->
+    <!-- MAIN AREA: Analytics & High Impact Actions -->
+    <div class="space-y-12">
+        
+        <!-- HERO: Financial Analytics -->
+        {% if profile.role == 'owner' or profile.role == 'developer' or profile.department and profile.department.name|lower == 'finance' %}
+        <section>
+            <div class="group relative bg-[#111827] border border-white/5 rounded-[3rem] p-12 shadow-2xl overflow-hidden min-h-[350px] flex flex-col justify-end">
+                <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent opacity-60"></div>
+                <!-- Background Illustration -->
+                <i class="fas fa-chart-line text-[25rem] absolute -top-10 -right-20 text-white/[0.02] -rotate-12 pointer-events-none group-hover:scale-110 transition-transform duration-1000"></i>
+                
+                <div class="relative z-10 w-full max-w-4xl">
+                    <div class="inline-flex items-center gap-3 bg-emerald-500/10 text-emerald-400 px-6 py-2.5 rounded-full text-sm font-black mb-8 border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
+                        <span class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
+                        مركز القيادة المالية المتقدمة
+                    </div>
+                    <h2 class="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">حلل مستقبلك <span class="text-emerald-400">المالي</span> بنظرة واحدة</h2>
+                    <p class="text-gray-400 text-xl mb-10 leading-relaxed max-w-2xl">راقب التدفقات النقدية، تقارير الضرائب، وتحليلات الربحية اللحظية عبر محرك FlowNest الذكي.</p>
+                    <a href="{% url 'flownest' %}" class="inline-flex items-center gap-4 bg-emerald-500 hover:bg-emerald-600 text-black px-10 py-5 rounded-2xl font-black text-xl transition-all hover:gap-8 shadow-2xl shadow-emerald-500/30">
+                        استكشف التحليلات الاستراتيجية <i class="fas fa-arrow-left mt-1"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- DISTINGUISHED DEPARTMENT GRID -->
+        <section>
+            <div class="flex items-center justify-between mb-8 px-4">
+                <h2 class="text-2xl font-black text-white flex items-center gap-3">
+                    <i class="fas fa-layer-group text-primary"></i> مساحات عمل الإدارات
+                </h2>
+                <div class="h-px flex-1 mx-8 bg-gradient-to-r from-white/10 to-transparent"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for dept in company_departments %}
+                <a href="{% url 'workplace' dept.id %}" class="group relative bg-[#1e1e2f]/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-xl hover:shadow-primary/10 overflow-hidden">
+                    <div class="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br {{ dept.color_gradient }} opacity-0 group-hover:opacity-20 blur-[100px] rounded-full transition-all duration-500"></div>
+                    
+                    <div class="relative z-10">
+                        <div class="w-20 h-20 {{ dept.bg_light }} border border-white/10 rounded-2xl flex items-center justify-center {{ dept.text_color }} group-hover:bg-gradient-to-br {{ dept.color_gradient }} group-hover:text-white transition-all duration-500 mb-8 shadow-inner">
+                            <i class="{{ dept.icon }} text-3xl"></i>
+                        </div>
+                        
+                        <h3 class="text-2xl font-black text-white mb-2 group-hover:{{ dept.text_color }} transition-colors">إدارة {{ dept.name }}</h3>
+                        <p class="text-xs text-gray-400 uppercase tracking-widest">{{ dept.name|upper }} WORKSPACE</p>
+                        
+                        <div class="mt-8 flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-gray-400 group-hover:text-gray-200 transition-colors">دخول مساحة العمل</span>
+                            <div class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:border-primary/50 transition-colors">
+                                <i class="fas fa-chevron-left text-xs group-hover:translate-x-[-4px] transition-transform"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Actions Grid: AI Assistant & General Chat -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8">
+            <!-- AI Assistant -->
+            <a href="{% url 'rag:chat' %}" class="group relative bg-indigo-600/5 border border-white/5 rounded-[3rem] p-10 overflow-hidden hover:border-indigo-500/50 transition-all duration-500">
+                <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="flex flex-col md:flex-row items-center gap-8 relative z-10">
+                    <div class="w-24 h-24 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-3xl flex items-center justify-center text-white text-4xl shadow-2xl group-hover:rotate-6 transition-transform">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="text-center md:text-right">
+                        <h3 class="text-3xl font-black text-white mb-3">المساعد الذكي (AI)</h3>
+                        <p class="text-gray-400 text-lg">تحليل المستندات والرد على الاستفسارات اللحظية.</p>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Tasks Widget -->
+            <div class="bg-white/[0.02] border border-white/5 rounded-[3rem] p-10">
+                <div class="flex items-center justify-between mb-8">
+                    <h3 class="text-2xl font-black text-white">المشاريع الجارية</h3>
+                    <div class="px-6 py-2 bg-white/5 rounded-full text-xs font-bold text-gray-400 transition-colors">نظرة عامة</div>
+                </div>
+                <div class="space-y-4">
+                    {% for t in recent_tasks|slice:":2" %}
+                    <div class="group p-5 bg-white/[0.03] border border-white/5 rounded-2xl flex items-center justify-between hover:border-white/20 transition-all">
+                        <div class="flex items-center gap-4">
+                            <span class="w-3 h-3 rounded-full {% if t.status == 'active' %}bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]{% else %}bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)]{% endif %}"></span>
+                            <span class="text-lg font-bold text-gray-200 group-hover:text-white transition-colors">{{ t.name }}</span>
+                        </div>
+                        <i class="fas fa-chevron-left text-gray-600 group-hover:text-white transition-colors"></i>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-10 text-gray-500 italic">لا توجد مشاريع مسجلة..</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+    </div>
+{% endif %}
+
+
+{% endblock %}

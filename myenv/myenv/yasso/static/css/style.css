@@ -1,0 +1,219 @@
+:root {
+    --bg-dark: #0f172a;
+    --sidebar-bg: rgba(30, 41, 59, 0.7);
+    --card-bg: rgba(30, 41, 59, 0.8);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-primary: #3b82f6;
+    --accent-hover: #2563eb;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --font-ar: 'Cairo', sans-serif;
+    --font-en: 'Inter', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: var(--font-ar);
+    min-height: 100vh;
+}
+
+.erp-layout {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Sidebar Styling */
+.sidebar {
+    width: 280px;
+    background: var(--sidebar-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 0;
+    z-index: 10;
+}
+
+.sidebar-header {
+    padding: 0 1.5rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.sidebar-header h2 {
+    font-weight: 800;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.sidebar-header h2 span {
+    color: var(--accent-primary);
+}
+
+.user-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+.user-dept {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.nav-section {
+    padding: 1rem 1.5rem 0.5rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    border-right: 3px solid transparent;
+}
+
+.nav-link i {
+    width: 1.5rem;
+    margin-left: 0.75rem;
+    font-size: 1.1rem;
+}
+
+.nav-link:hover, .nav-link.active {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border-right-color: var(--accent-primary);
+}
+
+.logout-form {
+    width: 100%;
+}
+.logout-btn {
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: right;
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #ef4444;
+}
+.logout-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-right-color: #ef4444;
+    color: #f87171;
+}
+
+/* Main Content Area */
+.main-content {
+    flex-grow: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    position: relative;
+    background: radial-gradient(circle at 100% 0%, #1e293b 0%, #0f172a 50%);
+}
+
+@media (min-width: 1024px) {
+    .main-content {
+        padding: 2rem;
+    }
+}
+
+/* Component Overrides for Dark Mode */
+.glass-panel {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+}
+
+.iframe-container {
+    width: 100%;
+    height: calc(100vh - 4rem);
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white; /* Flask app is likely light mode, so keep its background */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 1rem;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+}
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    color: white;
+    border-radius: 8px;
+    font-family: inherit;
+}
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+.btn-primary {
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+.btn-primary:hover {
+    background: var(--accent-hover);
+}

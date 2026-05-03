@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-center min-h-[80vh]">
+    <div class="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8">
+        
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-extrabold text-white mb-2">
+                <i class="fas fa-sign-in-alt text-primary mr-2"></i> تسجيل الدخول
+            </h2>
+            <p class="text-gray-400">أدخل بياناتك للوصول لنظام FlowNest ERP</p>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            {% if form.errors %}
+            <div class="flex items-center gap-3 bg-red-500/10 border border-red-500/40 rounded-2xl px-4 py-3 text-red-300 animate-shake">
+                <i class="fas fa-exclamation-triangle text-red-400 flex-shrink-0"></i>
+                <span class="text-sm">اسم المستخدم أو كلمة المرور غير صحيحة.</span>
+            </div>
+            {% endif %}
+            
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-300">اسم المستخدم</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <i class="fas fa-user text-gray-500"></i>
+                    </div>
+                    <input type="text" name="username" class="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="ادخل اسم المستخدم" required autofocus>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-300">كلمة المرور</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <i class="fas fa-lock text-gray-500"></i>
+                    </div>
+                    <input type="password" name="password" class="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="••••••••" required>
+                </div>
+                <div class="flex justify-end mt-1">
+                    <a href="{% url 'password_reset' %}" class="text-xs text-gray-400 hover:text-primary hover:underline transition-colors">هل نسيت كلمة المرور؟</a>
+                </div>
+
+            </div>
+
+
+            <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary hover:from-indigo-600 hover:to-pink-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-500/30 transition-all hover:scale-[1.02]">
+                تسجيل الدخول <i class="fas fa-arrow-left mr-2"></i>
+            </button>
+            
+            <input type="hidden" name="next" value="{{ next|default:'/' }}">
+        </form>
+
+        <div class="mt-8 text-center text-sm">
+            <p class="text-gray-400">
+                ليس لديك حساب؟ 
+                <a href="{% url 'register' %}" class="font-bold text-primary hover:text-indigo-400 hover:underline transition-colors">إنشاء حساب جديد</a>
+            </p>
+        </div>
+    </div>
+</div>
+<style>
+    .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+</style>
+<script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const usernameInput = this.querySelector('input[name="username"]');
+        if (usernameInput) {
+            // Clean the username to match the stored version (lowercase, spaces to underscores)
+            usernameInput.value = usernameInput.value.toLowerCase().trim()
+                .replace(/\s+/g, '_')
+                .replace(/[^\w\s_]/g, '');
+        }
+    });
+</script>
+{% endblock %}

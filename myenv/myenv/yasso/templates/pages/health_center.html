@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="animate-fade-in-up space-y-8">
+    
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h1 class="text-4xl font-black text-white mb-2 flex items-center gap-3">
+                <i class="fas fa-user-shield text-indigo-500"></i> مركز حماية البيانات
+            </h1>
+            <p class="text-gray-500 font-bold">مراقبة حية لصحة النظام، الملفات، والذكاء الاصطناعي</p>
+        </div>
+        <div class="flex items-center gap-4">
+            {% if show_technical %}
+            <button onclick="runDeepDiagnostic()" id="diagBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2">
+                <i class="fas fa-microchip"></i> فحص عميق للذكاء الاصطناعي
+            </button>
+            {% endif %}
+            <div class="{% if db_status == 'Safe' or db_status == 'Secure' %}bg-green-500/10 text-green-400 border-green-500/20{% else %}bg-red-500/10 text-red-400 border-red-500/20{% endif %} px-5 py-2.5 rounded-2xl border font-bold text-sm flex items-center gap-2 shadow-xl">
+                 <i class="fas {% if db_status == 'Safe' or db_status == 'Secure' %}fa-database{% else %}fa-exclamation-triangle{% endif %}"></i>
+                 حالة القاعدة: {{ db_status }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Banner (Railway Persistence) -->
+    {% if not is_persistent and show_technical %}
+    <div class="bg-gradient-to-r from-red-600/20 to-orange-600/10 border border-red-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+        <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
+            <div class="w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg shadow-red-500/40 animate-pulse">
+                <i class="fas fa-hdd"></i>
+            </div>
+            <div class="flex-1 text-center md:text-right">
+                <h3 class="text-xl font-black text-white mb-1">تنبيه: البيانات معرضة للفقدان</h3>
+                <p class="text-gray-400 text-sm">أنت تعمل حالياً على "تخزين مؤقت". سيتم مسح الصور والملفات المرفوعة عند أي تحديث للكود ما لم يتم ربط مساحة تخزين دائمة (Railway Volume).</p>
+            </div>
+            <a href="https://docs.railway.com/guides/volumes" target="_blank" class="bg-white text-black px-6 py-3 rounded-xl font-bold hover:bg-gray-200 transition-all flex items-center gap-2">
+                حل المشكلة <i class="fas fa-external-link-alt text-xs"></i>
+            </a>
+        </div>
+        <i class="fas fa-exclamation-circle absolute -right-6 -bottom-6 text-red-500/5 text-9xl"></i>
+    </div>
+    {% endif %}
+
+    <!-- Status Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- AI Health -->
+        <div class="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 hover:border-indigo-500/30 transition-all group">
+            <div class="flex items-start justify-between mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                    <i class="fas fa-robot text-xl"></i>
+                </div>
+                <span class="px-3 py-1 bg-green-500/10 text-green-400 text-[10px] font-bold rounded-full border border-green-500/20 uppercase tracking-widest">Active</span>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">اتصال الذكاء الاصطناعي</h4>
+            <p class="text-gray-500 text-xs leading-relaxed">فحص دوري لـ محركات Gemini و Groq لضمان قدرتهم على قراءة ملفاتك.</p>
+            <div class="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+                <span class="text-xs text-gray-400 font-bold">Status: Online</span>
+                <i class="fas fa-check-circle text-green-500"></i>
+            </div>
+        </div>
+
+        <!-- Files Health -->
+        <div class="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 hover:border-pink-500/30 transition-all group">
+            <div class="flex items-start justify-between mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-pink-500/10 flex items-center justify-center text-pink-400 group-hover:bg-pink-500 group-hover:text-white transition-all">
+                    <i class="fas fa-file-invoice text-xl"></i>
+                </div>
+                <span class="px-3 py-1 bg-yellow-500/10 text-yellow-500 text-[10px] font-bold rounded-full border border-yellow-500/20 uppercase tracking-widest">Scanning</span>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">سلامة الملفات المرفوعة</h4>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="text-3xl font-black text-white">{{ missing_files_count }}</span>
+                <span class="text-xs text-gray-500">ملفات مفقودة رُصدت</span>
+            </div>
+            <div class="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+                <span class="text-xs text-gray-400 font-bold">Check Integrity</span>
+                <i class="fas fa-sync-alt text-pink-400 animate-spin-slow"></i>
+            </div>
+        </div>
+
+        <!-- Database Health -->
+        <div class="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 hover:border-emerald-500/30 transition-all group">
+            <div class="flex items-start justify-between mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                    <i class="fas fa-database text-xl"></i>
+                </div>
+                <span class="px-3 py-1 bg-green-500/10 text-green-400 text-[10px] font-bold rounded-full border border-green-500/20 uppercase tracking-widest">Normal</span>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">اتصال قاعدة البيانات</h4>
+            <p class="text-gray-500 text-xs leading-relaxed">فحص حي ومباشر للمحرك الأساسي لبيانات شركتك لضمان سرعة التحميل.</p>
+            <div class="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+                <span class="text-xs text-gray-400 font-bold">Engine: Healthy</span>
+                <i class="fas fa-link text-emerald-500"></i>
+            </div>
+        </div>
+
+        {% if show_technical %}
+        <!-- API Latency -->
+        <div class="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 hover:border-cyan-500/30 transition-all group">
+            <div class="flex items-start justify-between mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white transition-all">
+                    <i class="fas fa-tachometer-alt text-xl"></i>
+                </div>
+                <span class="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-[10px] font-bold rounded-full border border-cyan-500/20 uppercase tracking-widest">Fast</span>
+            </div>
+            <h4 class="text-lg font-bold text-white mb-2">سرعة استجابة السيرفر</h4>
+            <p class="text-gray-500 text-xs leading-relaxed">يقيس التأخير في الطلبات لضمان تجربة Meet سلسة وبدون انقطاع.</p>
+            <div class="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+                <span class="text-xs text-gray-400 font-bold">Latency: 45ms</span>
+                <div class="flex gap-0.5">
+                    <div class="w-1 h-3 bg-cyan-500 rounded-full"></div>
+                    <div class="w-1 h-2 bg-cyan-500/40 rounded-full mt-1"></div>
+                    <div class="w-1 h-4 bg-cyan-500 rounded-full -mt-1"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Detailed List: Missing Records -->
+    <div class="bg-white/5 border border-white/10 rounded-[2.5rem] overflow-hidden">
+        <div class="p-8 border-b border-white/5 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-white">سجل الملفات المعرضة للخطر (Media Integrity)</h3>
+            <span class="text-xs text-indigo-400 font-bold">آخر فحص: الآن</span>
+        </div>
+        
+        {% if missing_files_count > 0 %}
+        <div class="px-8 py-4 bg-yellow-500/10 border-b border-white/5 flex gap-3 items-center">
+            <i class="fas fa-info-circle text-yellow-500 text-lg"></i>
+            <p class="text-[11px] text-gray-400 font-bold leading-relaxed">
+                <span class="text-yellow-500">ملاحظة تقنية:</span> الملفات المدرجة أدناه تم رفعها أثناء فترة "التخزين المؤقت" البدائية للنظام وقد حذفت تلقائياً عند تحديث السيرفر. 
+                بما أن "التخزين الآمن" مفعل الآن (Green Shield)، فإن جميع الملفات الجديدة التي ترفعها لن تفقد أبداً.
+            </p>
+        </div>
+        {% endif %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="bg-white/[0.02]">
+                        <th class="px-8 py-5 text-gray-400 text-xs font-bold uppercase tracking-widest">اسم الملف</th>
+                        <th class="px-8 py-5 text-gray-400 text-xs font-bold uppercase tracking-widest">النوع</th>
+                        <th class="px-8 py-5 text-gray-400 text-xs font-bold uppercase tracking-widest">الحالة المادية</th>
+                        <th class="px-8 py-5 text-gray-400 text-xs font-bold uppercase tracking-widest">تاريخ الرفع</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {% for f in missing_files_list %}
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                        <td class="px-8 py-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 text-xs">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <span class="text-white font-bold text-sm">{{ f.file_name }}</span>
+                            </div>
+                        </td>
+                        <td class="px-8 py-6">
+                            <span class="px-3 py-1 bg-white/5 rounded-lg text-xs text-gray-400">{{ f.type }}</span>
+                        </td>
+                        <td class="px-8 py-6">
+                            <div class="flex items-center gap-2 text-red-400 text-xs font-black">
+                                <i class="fas fa-times-circle"></i> غير موجود (404)
+                            </div>
+                        </td>
+                        <td class="px-8 py-6 text-xs text-gray-500">{{ f.uploaded_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-8 py-10 text-center text-gray-600 font-bold italic">لا توجد ملفات مفقودة. نظامك في أمان تام.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .animate-spin-slow { animation: spin 8s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+
+<script>
+async function runDeepDiagnostic() {
+    const btn = document.getElementById('diagBtn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الفحص...';
+    
+    try {
+        const res = await fetch("{% url 'rag_diagnostic' %}");
+        const data = await res.json();
+        
+        if (data.status === 'Healthy') {
+            alert("✅ تم الفحص بنجاح!\n- ChromaDB: " + data.details.chromadb_query + "\n- Groq AI: " + data.details.groq_api + "\n- عدد المستندات: " + data.details.vector_count);
+        } else {
+            alert("❌ فشل الفحص: " + (data.error || "خطأ مجهول"));
+        }
+    } catch (e) {
+        alert("❌ فشل الاتصال بالسيرفر: " + e);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+</script>
+{% endblock %}

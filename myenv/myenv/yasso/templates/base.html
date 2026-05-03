@@ -1,0 +1,495 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="html-root">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowNest ERP | SaaS Edition</title>
+
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1.0.6">
+    <link rel="stylesheet" href="{% static 'css/dashboard-v3.css' %}?v=1.0.6">
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block extra_head %}{% endblock %}
+
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Cairo', 'sans-serif'], body: ['Inter', 'sans-serif'] },
+                    colors: { primary: '#6366f1', secondary: '#ec4899', darkbg: '#0f111a' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --bg-main: #0f111a;
+            --bg-panel: rgba(30, 30, 47, 0.6);
+            --border-col: rgba(255, 255, 255, 0.05);
+            --text-main: #f8fafc;
+            --text-muted: #9ca3af;
+        }
+
+        }
+
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Cairo', sans-serif;
+            transition: 0.3s;
+        }
+
+        .glass-panel {
+            background: var(--bg-panel);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-col);
+        }
+
+        .nav-link {
+            transition: all 0.25s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateX(-4px);
+            color: #6366f1;
+        }
+
+        #settings-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 320px;
+            height: 100vh;
+            z-index: 200;
+            transform: translateX(110%);
+            transition: 0.35s;
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid var(--border-col);
+            padding: 1.5rem;
+        }
+
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+
+        .toggle-pill {
+            width: 48px;
+            height: 26px;
+            background: #374151;
+            border-radius: 999px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .toggle-pill.on {
+            background: #6366f1;
+        }
+
+        .toggle-pill::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.25s;
+        }
+
+        .toggle-pill.on::after {
+            left: 25px;
+        }
+
+        #sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 45;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 1024px) {
+            #main-content {
+                height: auto !important;
+                overflow: visible !important;
+            }
+            body { 
+                overflow-x: hidden;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col lg:flex-row">
+    <!-- Django Messages Toast -->
+    {% if messages %}
+    <div class="fixed top-6 left-1/2 -translate-x-1/2 z-[2000] flex flex-col gap-3 w-full max-w-md px-4">
+        {% for message in messages %}
+        <div class="message-toast animate-fade-in-up glass-panel border-white/10 p-4 rounded-2xl shadow-2xl flex items-center gap-4 border-l-4 
+            {% if message.tags == 'success' %}border-l-emerald-500 bg-emerald-500/10
+            {% elif message.tags == 'error' %}border-l-red-500 bg-red-500/10
+            {% else %}border-l-indigo-500 bg-indigo-500/10{% endif %}">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg
+                {% if message.tags == 'success' %}bg-emerald-500/20 text-emerald-400
+                {% elif message.tags == 'error' %}bg-red-500/20 text-red-400
+                {% else %}bg-indigo-500/20 text-indigo-400{% endif %}">
+                {% if message.tags == 'success' %}<i class="fas fa-check-circle"></i>
+                {% elif message.tags == 'error' %}<i class="fas fa-exclamation-circle"></i>
+                {% else %}<i class="fas fa-info-circle"></i>{% endif %}
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-bold text-white leading-tight">{{ message }}</p>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-gray-500 hover:text-white transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.message-toast').forEach(el => {
+                el.classList.add('opacity-0', '-translate-y-4');
+                setTimeout(() => el.remove(), 500);
+            });
+        }, 5000);
+    </script>
+    {% endif %}
+
+    <!-- Global Persistence Shield Alert -->
+    {% if profile.role == 'owner' or profile.role == 'developer' %}
+    {% if not is_persistent %}
+    <div class="fixed top-24 left-6 z-[1000] max-w-xs animate-fade-in" id="persistence-warning-popup">
+        <div class="bg-red-500/20 backdrop-blur-xl border border-red-500/30 p-4 rounded-2xl shadow-2xl flex gap-3 relative">
+            <button onclick="document.getElementById('persistence-warning-popup').remove();" class="absolute -top-2 -right-2 w-6 h-6 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-[10px] text-gray-400">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center text-white text-lg shadow-lg shadow-red-500/40">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-xs font-black text-white uppercase tracking-widest mb-1">تنبيه أمان البيانات</h4>
+                <p class="text-[10px] text-gray-400 font-bold leading-relaxed">نظامك يعمل في بيئة مؤقتة. الملفات قد تحذف عند أي تحديث. راجع <a href="{% url 'health_center' %}" class="text-indigo-400 underline">مركز الصحة</a></p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- ─── Mobile Header ──────────────────────────────────────── -->
+    {% if user.is_authenticated %}
+    <header class="lg:hidden flex items-center justify-between p-4 glass-panel border-b z-[60] sticky top-0"
+        style="border-color:var(--border-col)">
+        <button onclick="toggleMobileSidebar()" class="text-2xl p-2 text-primary">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h2 class="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+            FlowNest</h2>
+
+        <button onclick="openSettings()" class="text-xl p-2 text-gray-400"><i class="fas fa-cog"></i></button>
+    </header>
+    {% endif %}
+
+    <div id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <!-- ─── Settings Panel ─────────────────────────────────────── -->
+    <div id="settings-panel">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-extrabold" style="color:var(--text-main)">إعدادات المنصة</h2>
+            <button onclick="closeSettings()" class="text-gray-400"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="mb-6 hidden">
+            <p class="text-sm font-bold mb-3" style="color:var(--text-muted)">وضع العرض</p>
+            <div class="flex items-center gap-4">
+                <span>داكن</span>
+                <div id="mode-toggle" class="toggle-pill"></div>
+                <span>فاتح</span>
+            </div>
+        </div>
+        <div class="mb-6">
+            <p class="text-sm font-bold mb-3" style="color:var(--text-muted)">اللغة</p>
+            <div class="flex gap-2">
+                <button onclick="setLang('ar')" class="btn btn-sm btn-outline flex-1">🇸🇦 عربي</button>
+                <button onclick="setLang('en')" class="btn btn-sm btn-outline flex-1">🇬🇧 EN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Sidebar ─────────────────────────────────────────────── -->
+    {% if user.is_authenticated %}
+    <aside id="sidebar-drawer"
+        class="w-72 glass-panel flex flex-col h-screen fixed top-0 right-0 z-50 border-l transform transition-transform duration-300 lg:translate-x-0 translate-x-full lg:flex hidden"
+        style="border-color:var(--border-col)">
+        <div class="p-6 text-center border-b" style="border-color:var(--border-col)">
+            <h2 class="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+                FlowNest ERP</h2>
+
+            <div class="mt-2 text-xs font-bold text-indigo-400 flex items-center justify-center gap-2">
+                <span>{{ user.username }} · {{ user.profile.get_role_display }}</span>
+                <a href="{% url 'account_settings' %}" class="hover:text-white transition-colors" title="إعدادات الحساب">
+                    <i class="fas fa-cog"></i>
+                </a>
+            </div>
+        </div>
+        <nav class="flex-1 overflow-y-auto w-full p-4 space-y-1">
+            <!-- Admin -->
+            {% if user.profile.role == 'owner' or user.profile.role == 'manager' or user.profile.role == 'developer' %}
+            <div class="text-[10px] uppercase tracking-widest font-bold text-gray-500 px-3 mb-2 mt-4">الإدارة</div>
+            <a href="{% url 'approvals' %}"
+                class="nav-link flex items-center p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 mb-2">
+                <i class="fas fa-check-circle w-6 ml-3 text-indigo-400"></i>
+                <span class="font-bold">لوحة الموافقات</span>
+            </a>
+            <a href="{% url 'activity_log' %}"
+                class="nav-link flex items-center p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 mb-2">
+                <i class="fas fa-list-alt w-6 ml-3 text-indigo-400"></i>
+                <span class="font-bold">سجل النشاطات (Audit Log)</span>
+            </a>
+            <a href="{% url 'team_list' %}"
+                class="nav-link flex items-center p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 mb-2">
+                <i class="fas fa-users w-6 ml-3 text-indigo-400"></i>
+                <span class="font-bold">دليل الفريق</span>
+            </a>
+            <a href="{% url 'health_center' %}"
+
+                class="nav-link flex items-center p-3 rounded-xl bg-red-500/5 border border-red-500/10 mb-2 hover:bg-red-500/10 transition-all">
+                <i class="fas fa-shield-virus w-6 ml-3 text-red-400"></i>
+                <span class="font-bold text-red-500/80">مركز الصحة</span>
+            </a>
+            {% endif %}
+
+            <div class="text-[10px] uppercase tracking-widest font-bold text-gray-500 px-3 mb-2 mt-4">الأدوات</div>
+            <a href="{% url 'upload_center' %}"
+                class="nav-link flex items-center p-3 rounded-xl bg-primary/10 border border-primary/20 mb-2">
+                <i class="fas fa-cloud-upload-alt w-6 ml-3 text-primary"></i>
+                <span class="font-bold">مركز رفع البيانات</span>
+            </a>
+
+            <!-- Core -->
+            <div class="text-[10px] uppercase tracking-widest font-bold text-gray-500 px-3 mb-2 mt-4">الرئيسية</div>
+            <a href="{% url 'dashboard' %}" class="nav-link flex items-center p-3 rounded-xl"><i
+                    class="fas fa-home w-6 ml-3"></i><span class="font-semibold">الرئيسية</span></a>
+            <a href="{% url 'rag:chat' %}" class="nav-link flex items-center p-3 rounded-xl"><i
+                    class="fas fa-robot w-6 ml-3 text-purple-400"></i><span class="font-semibold">المساعد
+                    الذكي</span></a>
+
+            <a href="{% url 'chat:room' 'general' %}" class="nav-link flex items-center p-3 rounded-xl">
+                <i class="fas fa-comments w-6 ml-3 text-pink-400"></i>
+                <span class="font-semibold">النقاش العام</span>
+            </a>
+
+            <a href="{% url 'chat:task_list' %}" class="nav-link flex items-center p-3 rounded-xl">
+                <i class="fas fa-tasks w-6 ml-3 text-yellow-400"></i>
+                <span class="font-semibold">لوحة المهام</span>
+            </a>
+
+
+            <!-- Financial Guard Alerts (Sidebar) -->
+            {% if sidebar_alerts %}
+            <div class="text-[10px] uppercase tracking-widest font-bold text-red-500 px-3 mb-2 mt-6 flex items-center gap-2">
+                <i class="fas fa-shield-alt"></i> حارس التدفق
+            </div>
+            <div class="space-y-2 px-2">
+                {% for alert in sidebar_alerts %}
+                <div class="p-3 rounded-xl bg-red-500/5 border border-red-500/10 text-[11px] relative overflow-hidden group">
+                    <div class="font-bold text-red-400 mb-1 flex justify-between">
+                        <span>{{ alert.project.name }}</span>
+                        <span>{{ alert.percent }}%</span>
+                    </div>
+                    <p class="text-gray-400 leading-tight">{{ alert.message|truncatechars:60 }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Analysis/Monitoring -->
+            {% if user.profile.role == 'owner' or user.profile.role == 'manager' %}
+            <div class="text-[10px] uppercase tracking-widest font-bold text-emerald-500 px-3 mb-2 mt-6 flex items-center gap-2">
+                <i class="fas fa-chart-line"></i> المراقبة والتحليل
+            </div>
+            
+            {# TEMPORARY: Allow all roles to see during debug to confirm visibility #}
+            {% if user.is_authenticated %}
+            <a href="{% url 'flownest' %}" class="nav-link flex items-center p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-2 group transition-all" onclick="toggleMobileSidebar()">
+                <i class="fas fa-microchip w-6 ml-3 text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                <span class="font-bold text-emerald-400">التحليل المالي المتقدم (FlowNest AI)</span>
+            </a>
+            {% endif %}
+
+            <a href="{% url 'reports' %}" class="nav-link flex items-center p-3 rounded-xl"><i
+                    class="fas fa-chart-pie w-6 ml-3 text-yellow-400"></i><span class="font-semibold">تقارير
+                    الأداء</span></a>
+            {% endif %}
+        </nav>
+            <div class="p-4 bg-white/5 rounded-2xl border border-white/5 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] text-gray-500 font-black uppercase tracking-tight">Status</span>
+                    <span class="text-[9px] text-gray-400 font-bold opacity-40">{{ build_version }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if is_persistent %}
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-[11px] font-black text-green-400 uppercase">تخزين آمن: فعال</span>
+                    {% else %}
+                    <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                    <span class="text-[11px] font-black text-yellow-400 uppercase">تخزين مؤقت</span>
+                    {% endif %}
+                </div>
+            </div>
+            <form action="{% url 'logout' %}" method="post">{% csrf_token %}
+                <button type="submit" class="w-full btn btn-ghost text-red-400 justify-start"><i
+                        class="fas fa-sign-out-alt ml-2"></i> خروج</button>
+            </form>
+        </div>
+    </aside>
+    {% endif %}
+
+    <main
+        class="flex-1 {% if user.is_authenticated %}lg:mr-80{% endif %} min-h-screen bg-black/10 p-4 md:p-8"
+        id="main-content">
+        <div class="max-w-[1600px] mx-auto">{% block content %}{% endblock %}</div>
+    </main>
+
+    {% if user.is_authenticated %}
+    <!-- ─── GLOBAL WEBRTC FLOATING OVERLAY ────────────────────────────────── -->
+    <div id="call-ui-overlay"
+         class="fixed inset-0 z-[200] bg-[#050710]/95 backdrop-blur-2xl hidden flex-col items-center justify-between p-6 md:p-10 animate-fade-in">
+        
+        <!-- Call Header -->
+        <div class="w-full flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-green-500/20 flex items-center justify-center text-green-400 shadow-lg">
+                    <i class="fas fa-phone-volume animate-pulse"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-black text-white" id="call-title">اجتماع الفلو-نيست المباشر</h2>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse inline-block"></span>
+                        <span id="participant-count">جاري الاتصال بالطرف الآخر...</span>
+                    </span>
+                </div>
+            </div>
+            <div class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold text-gray-500">
+                <i class="fas fa-shield-alt text-indigo-400 ml-1"></i> اتصال آمن
+            </div>
+        </div>
+
+        <!-- Global Minimize Button to fulfill searching capabilities -->
+        <button onclick="toggleMinimizeCallUI()" class="absolute right-6 top-24 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full w-12 h-12 flex items-center justify-center text-gray-400 hover:text-white transition-all z-[210]">
+            <i class="fas fa-compress-alt text-lg"></i>
+        </button>
+
+        <!-- Grid -->
+        <div id="call-grid" class="flex-1 w-full max-w-5xl my-6 grid grid-cols-1 md:grid-cols-2 gap-5 auto-rows-fr items-center">
+            <div class="relative rounded-3xl bg-white/5 border border-white/10 overflow-hidden shadow-2xl aspect-video flex items-center justify-center" id="self-video-card">
+                <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover hidden"></video>
+                <div id="local-placeholder" class="flex flex-col items-center gap-3">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl font-black text-white shadow-2xl">
+                        {{ user.username|first|upper }}
+                    </div>
+                    <span class="text-white/60 text-sm font-bold">{{ user.username }} (أنت)</span>
+                    <div class="flex items-center gap-1 text-green-400 text-xs"><i class="fas fa-microphone"></i> صوت نشط</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="w-full max-w-lg bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[2.5rem] p-5 flex items-center justify-center gap-5 shadow-2xl mb-4">
+            <button onclick="toggleMic()" id="mic-toggle-btn"
+                    class="w-14 h-14 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white text-lg hover:bg-white/20 transition-all relative group">
+                <i class="fas fa-microphone" id="mic-icon"></i>
+            </button>
+            <button onclick="toggleCamera()" id="camera-toggle-btn"
+                    class="w-14 h-14 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400 text-lg hover:bg-red-500/30 transition-all relative group">
+                <i class="fas fa-video-slash" id="camera-icon"></i>
+            </button>
+            <button onclick="shareScreen()" class="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 text-lg hover:bg-white/10 transition-all hidden md:flex relative group">
+                <i class="fas fa-desktop"></i>
+            </button>
+            <button onclick="leaveCall()" class="w-18 h-14 px-6 rounded-[1.5rem] bg-red-600 hover:bg-red-700 flex items-center justify-center text-white text-xl transition-all shadow-2xl shadow-red-600/30">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Minimized Floating Bubble UI -->
+    <div id="call-minimized-bubble" onclick="toggleMinimizeCallUI()"
+         class="fixed bottom-6 left-6 z-[250] hidden w-16 h-16 rounded-3xl bg-gradient-to-br from-green-500 to-teal-600 shadow-2xl cursor-pointer items-center justify-center text-white animate-bounce hover:animate-none transition-all border-2 border-white/20 shadow-green-500/30">
+         <i class="fas fa-phone-volume text-xl"></i>
+    </div>
+
+    <script src="{% static 'js/webrtc-handler-v2.js' %}?v=1.0.6"></script>
+    <script>
+        window._roomName = 'general';
+        window._csrfToken = '{{ csrf_token }}';
+        window.onload = () => {
+            try {
+                startIncomingCallPolling('general');
+            } catch(e) { console.warn('Polling init:', e); }
+        };
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar-drawer');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (!sidebar) return;
+            
+            if (sidebar.classList.contains('translate-x-full')) {
+                sidebar.classList.remove('translate-x-full', 'hidden');
+                sidebar.classList.add('flex');
+                if (overlay) overlay.style.display = 'block';
+            } else {
+                sidebar.classList.add('translate-x-full');
+                if (overlay) overlay.style.display = 'none';
+            }
+        }
+
+        function openSettings() {
+            document.getElementById('settings-panel').classList.add('open');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-panel').classList.remove('open');
+        }
+
+        function setLang(lang) {
+            // Implementation for language switching (e.g., setting a cookie or redirecting)
+            document.cookie = "django_language=" + lang + "; path=/";
+            window.location.reload();
+        }
+
+        function toggleMinimizeCallUI() {
+            const overlay = document.getElementById('call-ui-overlay');
+            const bubble = document.getElementById('call-minimized-bubble');
+            
+            if (overlay.classList.contains('hidden')) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+                bubble.classList.add('hidden');
+                bubble.classList.remove('flex');
+            } else {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+                bubble.classList.remove('hidden');
+                bubble.classList.add('flex');
+            }
+        }
+    </script>
+    {% endif %}
+    {% block extra_body %}{% endblock %}
+</body>
+</html>

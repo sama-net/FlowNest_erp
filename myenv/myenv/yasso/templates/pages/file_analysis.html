@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block content %}
+<div class="space-y-6 animate-fade-in-up">
+
+  <!-- Header -->
+  <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 flex flex-wrap items-center gap-4 shadow-xl">
+    <div class="w-12 h-12 flex-shrink-0 rounded-2xl flex items-center justify-center
+      {% if analysis.type == 'pdf' %}bg-gradient-to-br from-red-500 to-rose-600
+      {% elif analysis.type == 'excel' %}bg-gradient-to-br from-green-500 to-emerald-600
+      {% else %}bg-gradient-to-br from-cyan-500 to-blue-600{% endif %}">
+      {% if analysis.type == 'pdf' %}<i class="fas fa-file-pdf text-2xl text-white"></i>
+      {% elif analysis.type == 'excel' %}<i class="fas fa-file-excel text-2xl text-white"></i>
+      {% else %}<i class="fas fa-table text-2xl text-white"></i>{% endif %}
+    </div>
+    <div class="flex-1 min-w-0">
+      <h1 class="text-xl font-extrabold text-white truncate">{{ data_file.file.name|slice:"14:" }}</h1>
+      <p class="text-gray-400 text-sm">من: <span class="text-indigo-300">{{ data_file.source_department }}</span> ← إلى: <span class="text-green-300">{{ data_file.target_department }}</span> · {{ data_file.uploaded_by.username }} · {{ data_file.uploaded_at|date:"Y-m-d H:i" }}</p>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <a href="{{ data_file.file.url }}" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105">
+        <i class="fas fa-download ml-1"></i>تحميل
+      </a>
+      <a href="{% url 'delete_file' data_file.id %}" onclick="return confirm('هل أنت متأكد من حذف هذا الملف؟')" class="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white p-2.5 rounded-xl transition-all shadow-lg shadow-red-500/10">
+        <i class="fas fa-trash-alt"></i>
+      </a>
+    </div>
+  </div>
+
+  {% if analysis.error %}
+  <!-- Error -->
+  <div class="bg-red-500/10 border border-red-500/30 rounded-3xl p-8 text-center">
+    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4 block"></i>
+    <h3 class="text-lg font-bold text-red-300 mb-2">تعذّر تحليل الملف</h3>
+    <p class="text-red-400 text-sm font-mono bg-black/30 px-4 py-3 rounded-xl inline-block">{{ analysis.error }}</p>
+  </div>
+
+  {% else %}
+  <!-- Project Tagging & Cost Tracking -->
+  <div class="bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 rounded-3xl p-6 shadow-xl">
+    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+      <i class="fas fa-tag text-indigo-400"></i> تخصيص الملف لمشروع (Project Tagging)
+    </h3>
+    <form method="post" class="flex flex-wrap items-end gap-4">
+      {% csrf_token %}
+      <div class="space-y-2 flex-1 min-w-[200px]">
+        <label class="text-xs text-gray-400 mr-2">المشروع المستهدف</label>
+        <select name="project" class="w-full bg-black/30 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:ring-2 focus:ring-primary focus:outline-none transition-all">
+          <option value="">-- اختصار/ربط بمشروع --</option>
+          {% for p in projects %}
+            <option value="{{ p.id }}" {% if data_file.project.id == p.id %}selected{% endif %}>{{ p.name }} ({{ p.location }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="space-y-2 w-32">
+        <label class="text-xs text-gray-400 mr-2">التكلفة الملحقة</label>
+        <input type="number" step="0.01" name="linked_cost" value="{{ data_file.linked_cost }}" class="w-full bg-black/30 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:ring-2 focus:ring-primary focus:outline-none transition-all">
+      </div>
+      <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 mb-px">
+        حفظ البيانات <i class="fas fa-save ml-1"></i>
+      </button>
+    </form>
+    {% if data_file.project %}
+    <div class="mt-4 flex items-center gap-2 text-xs text-green-400 bg-green-500/5 p-3 rounded-xl border border-green-500/10">
+      <i class="fas fa-check-double"></i> هذا الملف مرتبط حالياً بـ: <strong>{{ data_file.project.name }}</strong> بتكلفة <strong>{{ data_file.linked_cost }} ج.م</strong>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- AI Central Report Area -->
+  <div id="ai-content-area" class="space-y-6">
+    <!-- Loading State -->
+    <div id="ai-loading" class="bg-indigo-900/20 border border-indigo-500/30 rounded-3xl p-10 text-center animate-pulse shadow-xl">
+      <i class="fas fa-robot text-5xl text-indigo-400 mb-4 animate-bounce block"></i>
+      <h3 class="text-xl font-bold text-indigo-300">يتم الآن تحليل الملف بالذكاء الاصطناعي...</h3>
+      <p class="text-sm text-indigo-200/70 mt-2">نقرأ البيانات من داخل الجداول لاستخراج أهم الأرقام.</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="ai-error" class="hidden bg-red-500/10 border border-red-500/30 rounded-3xl p-6 text-center">
+      <p class="text-red-400" id="ai-error-text"></p>
+    </div>
+
+    <!-- Results State -->
+    <div id="ai-results" class="hidden space-y-6">
+      
+      <!-- Written Report -->
+      <div class="bg-gradient-to-br from-indigo-900/30 to-purple-900/20 border border-indigo-500/20 rounded-3xl p-6 shadow-xl">
+        <h3 class="font-bold text-indigo-300 mb-4 flex items-center gap-2">
+          <i class="fas fa-file-contract"></i> التقرير الاستراتيجي للملف
+        </h3>
+        <div id="ai-text-report" class="prose prose-invert prose-p:leading-relaxed max-w-none text-gray-300 text-sm">
+        </div>
+      </div>
+
+      <!-- AI Chart -->
+      <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-xl" id="ai-chart-container" style="display: none;">
+        <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+          <i class="fas fa-chart-pie text-pink-400"></i> المؤشر البياني الأهم بالتفصيل
+        </h3>
+        <div class="relative h-80">
+          <canvas id="mainAiChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  .prose h1, .prose h2, .prose h3 { color: white !important; margin-top: 1.5em; margin-bottom: 0.5em; }
+  .prose strong { color: #facc15 !important; }
+  .prose ul { list-style-type: none; padding-right: 0; }
+  .prose li::before { content: "•"; color: #818cf8; font-weight: bold; display: inline-block; width: 1em; margin-left: -1em; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  Chart.defaults.color = 'rgba(255,255,255,0.6)';
+  Chart.defaults.font.family = "'Cairo', sans-serif";
+
+  document.addEventListener('DOMContentLoaded', () => {
+    fetch('{% url "single_file_ai_report" data_file.id %}')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('ai-loading').style.display = 'none';
+
+        if (data.report && data.report.includes('<p class="text-red-400">')) {
+           document.getElementById('ai-error').classList.remove('hidden');
+           document.getElementById('ai-error-text').innerHTML = data.report;
+           return;
+        }
+
+        document.getElementById('ai-results').classList.remove('hidden');
+
+        // Render Text Report
+        if(data.text_report) {
+           document.getElementById('ai-text-report').innerHTML = marked.parse(data.text_report);
+        }
+
+        // Render Chart if data exists
+        if(data.main_chart && data.main_chart.labels && data.main_chart.labels.length > 0 && data.main_chart.data.length > 0) {
+           document.getElementById('ai-chart-container').style.display = 'block';
+           new Chart(document.getElementById('mainAiChart'), {
+             type: 'bar', // Using bar for better visibility of data
+             data: {
+               labels: data.main_chart.labels,
+               datasets: [{
+                 label: data.main_chart.title || 'بيانات الملف',
+                 data: data.main_chart.data,
+                 backgroundColor: ['#6366f1BB', '#10b981BB', '#f59e0bBB', '#ec4899BB', '#8b5cf6BB'],
+                 borderColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'],
+                 borderWidth: 2,
+                 borderRadius: 6
+               }]
+             },
+             options: {
+               responsive: true, maintainAspectRatio: false,
+               plugins: { legend: { display: !!data.main_chart.title } },
+               scales: {
+                 y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                 x: { grid: { display: false } }
+               }
+             }
+           });
+        }
+      })
+      .catch(err => {
+        console.error("AI Report Fetch Error:", err);
+        document.getElementById('ai-loading').style.display = 'none';
+        document.getElementById('ai-results').classList.add('hidden'); // Hide results area if it was partially showing
+        document.getElementById('ai-error').classList.remove('hidden');
+        document.getElementById('ai-error-text').innerText = "حدث خطأ في الاتصال بالذكاء الاصطناعي. ربما استغرق الرد وقتاً أطول من المتوقع.";
+      });
+  });
+</script>
+{% endblock %}

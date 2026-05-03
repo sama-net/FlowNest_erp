@@ -1,0 +1,963 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="animate-fade-in-up pb-20 space-y-8">
+
+    <!-- HERO HEADER -->
+    <div class="relative overflow-hidden rounded-[2.5rem] p-8 shadow-2xl" 
+         style="background: {% if dept.ui_settings.color %}linear-gradient(to bottom right, {{ dept.ui_settings.color }}, #111827){% endif %};"
+         class="{% if not dept.ui_settings.color %}bg-gradient-to-br {{ style.gradient }}{% endif %}">
+        <div class="absolute inset-0 opacity-10">
+            <div class="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white blur-[100px]"></div>
+            <div class="absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-white blur-[80px]"></div>
+        </div>
+        <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div class="flex items-center gap-5">
+                <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center text-white text-3xl shadow-inner">
+                    <i class="{% if dept.ui_settings %}{{ dept.ui_settings.icon }}{% else %}{{ style.icon }}{% endif %}"></i>
+                </div>
+                <div>
+                    <p class="text-white/60 text-xs font-bold uppercase tracking-widest">مساحة عمل</p>
+                    <h1 class="text-3xl font-black text-white">إدارة {{ dept.name }}</h1>
+                    <p class="text-white/70 text-sm mt-1">{{ profile.company_name }}</p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <a href="{% url 'upload_center' %}" class="px-5 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur border border-white/20 text-white text-sm font-bold rounded-xl transition-all flex items-center gap-2">
+                    <i class="fas fa-cloud-upload-alt"></i> رفع ملف
+                </a>
+                <a href="{% url 'dashboard' %}" class="px-5 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur border border-white/20 text-white text-sm font-bold rounded-xl transition-all flex items-center gap-2">
+                    <i class="fas fa-arrow-right text-xs"></i> الرئيسية
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI STATS ROW -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-5 text-center">
+            <div class="text-3xl font-black text-white mb-1">{{ stats.total_members }}</div>
+            <div class="text-xs text-gray-400 font-bold uppercase tracking-widest">إجمالي الأعضاء</div>
+        </div>
+        <div class="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-5 text-center">
+            <div class="text-3xl font-black text-emerald-400 mb-1">{{ stats.approved_members }}</div>
+            <div class="text-xs text-gray-400 font-bold uppercase tracking-widest">نشطون</div>
+        </div>
+        <div class="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-5 text-center">
+            <div class="text-3xl font-black text-amber-400 mb-1">{{ stats.pending_members }}</div>
+            <div class="text-xs text-gray-400 font-bold uppercase tracking-widest">معلقون</div>
+        </div>
+        <div class="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-5 text-center">
+            <div class="text-3xl font-black text-indigo-400 mb-1">{{ stats.total_files }}</div>
+            <div class="text-xs text-gray-400 font-bold uppercase tracking-widest">الملفات المرفوعة</div>
+        </div>
+    </div>
+
+    <!-- MAIN LAYOUT: SIDEBAR + CONTENT -->
+    <div class="flex flex-col xl:flex-row gap-8">
+        
+        <!-- SIDEBAR -->
+        <div class="w-full xl:w-1/3 space-y-6">
+            
+            <!-- SMART DEPARTMENT FEATURES -->
+            <div class="bg-[#111827]/80 backdrop-blur border border-white/5 rounded-[2rem] p-6">
+                <h2 class="text-lg font-black text-white mb-5 flex items-center gap-3">
+                    <i class="fas fa-star text-{{ style.color }}-400"></i> أدوات الإدارة السريعة
+                </h2>
+                
+                <div class="space-y-3">
+                    {% if slug == 'hr' %}
+                    <button onclick="openSmartModal('hr_leave', 'تسجيل طلب إجازة', 'fas fa-calendar-plus', 'rose')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-{{ style.color }}-500/20 border border-white/10 hover:border-{{ style.color }}-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-{{ style.color }}-500/20 flex items-center justify-center text-{{ style.color }}-400"><i class="fas fa-calendar-plus"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">تسجيل طلب إجازة</div>
+                                <div class="text-xs text-gray-500">للموظفين والمديرين</div>
+                            </div>
+                        </div>
+                    </button>
+                    <button onclick="openSmartModal('hr_salary', 'إدخال كشف رواتب', 'fas fa-money-check-alt', 'emerald')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400"><i class="fas fa-money-check-alt"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">إدخال كشف رواتب</div>
+                                <div class="text-xs text-gray-500">بيانات الرواتب الشهرية</div>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    {% elif slug == 'it' %}
+                    <button onclick="openSmartModal('it_ticket', 'فتح تذكرة دعم جديدة', 'fas fa-ticket-alt', 'blue')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400"><i class="fas fa-ticket-alt"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">فتح تذكرة دعم جديدة</div>
+                                <div class="text-xs text-gray-500">للأعطال التقنية والصيانة</div>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    {% elif slug == 'sales' %}
+                    <button onclick="openSmartModal('sales_deal', 'تسجيل صفقة جديدة', 'fas fa-handshake', 'green')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center text-green-400"><i class="fas fa-handshake"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">تسجيل صفقة جديدة</div>
+                                <div class="text-xs text-gray-500">العملاء المحتملين والحاليين</div>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    {% elif slug == 'clinical' or slug == 'nursing' %}
+                    <button onclick="openSmartModal('clinical_patient', 'إضافة ملف مريض', 'fas fa-user-injured', 'rose')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400"><i class="fas fa-user-injured"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">إضافة ملف مريض</div>
+                                <div class="text-xs text-gray-500">التشخيص وخطة العلاج</div>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    {% elif slug == 'student affairs' or slug == 'academic registry' %}
+                    <button onclick="openSmartModal('student_enroll', 'تسجيل طالب جديد', 'fas fa-user-graduate', 'indigo')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-indigo-500/20 border border-white/10 hover:border-indigo-500/50 transition-all group mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400"><i class="fas fa-user-graduate"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">تسجيل طالب جديد</div>
+                                <div class="text-xs text-gray-500">البيانات الأكاديمية والشخصية</div>
+                            </div>
+                        </div>
+                    </button>
+                    <button onclick="openSmartModal('morning_attendance', 'تسجيل الغياب الصباحي', 'fas fa-clipboard-check', 'sky')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-sky-500/20 border border-white/10 hover:border-sky-500/50 transition-all group mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-400"><i class="fas fa-clipboard-check"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">تسجيل الغياب الصباحي</div>
+                                <div class="text-xs text-gray-500">طابور الصباح اليومي</div>
+                            </div>
+                        </div>
+                    </button>
+                    <button onclick="openSmartModal('add_student_grade', 'إضافة درجات طالب', 'fas fa-star', 'amber')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400"><i class="fas fa-star"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">إضافة درجات طالب</div>
+                                <div class="text-xs text-gray-500">سجل نتائج الاختبارات والأنشطة</div>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    {% elif slug == 'faculty affairs' or slug == 'teachers' %}
+                    <button onclick="openSmartModal('session_attendance', 'أخذ غياب الحصة', 'fas fa-user-check', 'cyan')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/50 transition-all group mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400"><i class="fas fa-user-check"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">أخذ غياب الحصة</div>
+                                <div class="text-xs text-gray-500">مراقبة حالات الهروب تلقائياً</div>
+                            </div>
+                        </div>
+                    </button>
+                    <button onclick="openSmartModal('teacher_task', 'إضافة تكليف جديد', 'fas fa-tasks', 'fuchsia')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-fuchsia-500/20 border border-white/10 hover:border-fuchsia-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-fuchsia-500/20 flex items-center justify-center text-fuchsia-400"><i class="fas fa-tasks"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">إضافة تكليف/تحضير</div>
+                                <div class="text-xs text-gray-500">إدارة مهامك اليومية</div>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    {% elif slug == 'marketing' %}
+                    <button onclick="openSmartModal('marketing_campaign', 'إطلاق حملة تسويقية', 'fas fa-bullhorn', 'amber')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400"><i class="fas fa-bullhorn"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">إطلاق حملة تسويقية</div>
+                                <div class="text-xs text-gray-500">تتبع الميزانية والأداء</div>
+                            </div>
+                        </div>
+                    </button>
+
+                    {% elif slug == 'procurement' %}
+                    <button onclick="openSmartModal('procurement_order', 'إنشاء أمر شراء', 'fas fa-file-invoice-dollar', 'orange')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-orange-500/20 border border-white/10 hover:border-orange-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400"><i class="fas fa-file-invoice-dollar"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">إنشاء أمر شراء</div>
+                                <div class="text-xs text-gray-500">إدارة طلبات الموردين</div>
+                            </div>
+                        </div>
+                    </button>
+
+                    {% elif slug == 'legal' %}
+                    <button onclick="openSmartModal('legal_contract', 'صياغة عقد قانوني', 'fas fa-file-signature', 'violet')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-violet-500/20 border border-white/10 hover:border-violet-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center text-violet-400"><i class="fas fa-file-signature"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">صياغة عقد قانوني</div>
+                                <div class="text-xs text-gray-500">العقود والاتفاقيات الرسمية</div>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    {% elif slug == 'finance' or slug == 'financial' or slug == 'accounting' %}
+                    <a href="{% url 'flownest' %}" class="w-full text-right p-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/50 transition-all group block">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform"><i class="fas fa-microchip"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">التحليل المالي المتقدم</div>
+                                <div class="text-xs text-emerald-500/60 font-bold uppercase tracking-tighter">Strategic Command Center</div>
+                            </div>
+                        </div>
+                    </a>
+                    
+                    {% else %}
+                    <button onclick="openSmartModal('generic_add', 'إضافة سجل جديد', 'fas fa-plus-circle', '{{ style.color }}')" class="w-full text-right p-4 rounded-xl bg-white/5 hover:bg-{{ style.color }}-500/20 border border-white/10 hover:border-{{ style.color }}-500/50 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-{{ style.color }}-500/20 flex items-center justify-center text-{{ style.color }}-400"><i class="fas fa-plus-circle"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">إضافة سجل جديد</div>
+                                <div class="text-xs text-gray-500">تحديث بيانات الإدارة</div>
+                            </div>
+                        </div>
+                    </button>
+                    {% endif %}
+                    
+                    <!-- AI REPORT GENERATOR FOR ALL -->
+                    <button onclick="openSmartModal('ai_report', 'توليد تقرير بالذكاء الاصطناعي', 'fas fa-magic', 'indigo')" class="w-full text-right p-4 rounded-xl bg-gradient-to-l from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/40 hover:to-purple-600/40 border border-indigo-500/30 transition-all group mt-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white"><i class="fas fa-magic"></i></div>
+                            <div>
+                                <div class="font-bold text-white text-sm">توليد تقرير بالذكاء الاصطناعي</div>
+                                <div class="text-[10px] text-gray-300">تحليل فوري لبيانات قسمك</div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- DEPARTMENT CHAT (PROMINENT) -->
+            <a href="{% url 'chat:room' dept.name %}" class="block bg-gradient-to-br from-indigo-600/20 via-purple-600/20 to-primary/20 hover:from-indigo-600/30 hover:to-primary/30 border border-indigo-500/30 rounded-[2rem] p-6 transition-all duration-300 group shadow-xl shadow-indigo-500/10 relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full group-hover:bg-indigo-500/40 transition-all"></div>
+                <div class="flex items-center gap-4 relative z-10">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-500 flex items-center justify-center text-white text-2xl group-hover:scale-110 group-hover:rotate-6 transition-transform shadow-lg shadow-indigo-500/50">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-white group-hover:text-indigo-200 transition-colors">غرفة نقاش الإدارة</h2>
+                        <p class="text-xs text-indigo-300/80 mt-1 font-bold tracking-widest">Live Team Communication</p>
+                    </div>
+                </div>
+            </a>
+
+            <!-- QUICK ACTIONS (GLOBAL) -->
+            <div class="bg-[#111827]/60 border border-white/5 rounded-[2rem] p-6">
+                <h2 class="text-sm font-bold text-gray-400 mb-4 uppercase tracking-widest">إجراءات عامة</h2>
+                <div class="space-y-3">
+                    <a href="{% url 'rag:chat' %}" class="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-sm"><i class="fas fa-robot"></i></div>
+                        <div class="text-white text-sm font-bold">المساعد الذكي العام</div>
+                    </a>
+                    <a href="{% url 'upload_center' %}" class="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-sm"><i class="fas fa-cloud-upload-alt"></i></div>
+                        <div class="text-white text-sm font-bold">رفع ملفات للمؤسسة</div>
+                    </a>
+                    {% if profile.role == 'owner' or profile.role == 'developer' or slug == 'finance' %}
+                    <a href="{% url 'flownest' %}" class="flex items-center gap-3 p-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl transition-all group">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-sm group-hover:scale-110 transition-transform"><i class="fas fa-microchip"></i></div>
+                        <div class="text-emerald-400 text-sm font-bold">التحليل المالي المتقدم</div>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 space-y-8">
+            
+            <!-- DEPARTMENT SPECIFIC DATA MODULES -->
+            {% if dept_data %}
+            <div class="bg-[#111827]/80 backdrop-blur border border-white/5 rounded-[2rem] p-8 overflow-hidden">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-xl font-black text-white flex items-center gap-3">
+                        <i class="fas fa-layer-group text-{{ style.color }}-400"></i> بيانات وعمليات الإدارة
+                    </h2>
+                </div>
+
+                <!-- HR MODULE -->
+                {% if slug == 'hr' %}
+                <div class="space-y-6">
+                    <h3 class="text-white font-bold border-b border-white/10 pb-2">طلبات الإجازات</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {% for leave in dept_data.leaves %}
+                        <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="font-bold text-white">{{ leave.employee.user.username }}</div>
+                                <span class="text-xs px-2 py-1 rounded bg-white/10 text-gray-300">{{ leave.get_status_display }}</span>
+                            </div>
+                            <div class="text-xs text-gray-400">{{ leave.get_leave_type_display }} ({{ leave.days_count }} أيام)</div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-500">لا توجد إجازات مسجلة.</p>
+                        {% endfor %}
+                    </div>
+                    <h3 class="text-white font-bold border-b border-white/10 pb-2 mt-8">الرواتب</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-sm text-gray-300">
+                            <thead class="text-xs uppercase bg-white/5 text-gray-400">
+                                <tr><th class="px-4 py-3 rounded-tr-lg">الموظف</th><th class="px-4 py-3">الشهر/السنة</th><th class="px-4 py-3">الأساسي</th><th class="px-4 py-3 rounded-tl-lg">الصافي</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for sal in dept_data.salaries %}
+                                <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                    <td class="px-4 py-3 font-bold text-white">{{ sal.employee.user.username }}</td>
+                                    <td class="px-4 py-3">{{ sal.month }}/{{ sal.year }}</td>
+                                    <td class="px-4 py-3">{{ sal.base_salary }}</td>
+                                    <td class="px-4 py-3 text-emerald-400 font-bold">{{ sal.net_salary }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="px-4 py-3 text-center">لا توجد بيانات رواتب.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- IT MODULE -->
+                {% elif slug == 'it' %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for ticket in dept_data.tickets %}
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-4 border-r-4 {% if ticket.priority == 'critical' %}border-r-red-500{% elif ticket.priority == 'high' %}border-r-orange-500{% else %}border-r-blue-500{% endif %}">
+                        <div class="font-bold text-white mb-1">{{ ticket.title }}</div>
+                        <div class="text-xs text-gray-400 mb-3">{{ ticket.description|truncatechars:50 }}</div>
+                        <div class="flex justify-between items-center text-[10px]">
+                            <span class="text-gray-500">بواسطة: {{ ticket.created_by.username }}</span>
+                            <span class="bg-white/10 px-2 py-1 rounded text-white">{{ ticket.get_status_display }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-gray-500">لا توجد تذاكر دعم فني.</p>
+                    {% endfor %}
+                </div>
+                
+                <!-- SALES MODULE -->
+                {% elif slug == 'sales' %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm text-gray-300">
+                        <thead class="text-xs uppercase bg-white/5 text-gray-400">
+                            <tr><th class="px-4 py-3">العميل</th><th class="px-4 py-3">قيمة الصفقة</th><th class="px-4 py-3">المرحلة</th><th class="px-4 py-3">الاحتمالية</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for deal in dept_data.deals %}
+                            <tr class="border-b border-white/5 hover:bg-white/5">
+                                <td class="px-4 py-3 font-bold text-white">{{ deal.client_name }}</td>
+                                <td class="px-4 py-3 text-emerald-400 font-bold">{{ deal.deal_value }} ج.م</td>
+                                <td class="px-4 py-3"><span class="bg-white/10 px-2 py-1 rounded text-xs">{{ deal.get_stage_display }}</span></td>
+                                <td class="px-4 py-3">
+                                    <div class="w-full bg-gray-700 rounded-full h-1.5 mt-1"><div class="bg-emerald-500 h-1.5 rounded-full" style="width: {{ deal.probability|default:0 }}%"></div></div>
+                                    <span class="text-[10px] mt-1">{{ deal.probability|default:0 }}%</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="px-4 py-3 text-center">لا توجد صفقات حالية.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- MARKETING MODULE -->
+                {% elif slug == 'marketing' %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for camp in dept_data.campaigns %}
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                        <div class="font-bold text-white mb-1">{{ camp.name }}</div>
+                        <div class="flex justify-between items-center text-xs mb-3">
+                            <span class="text-gray-400">الميزانية: {{ camp.budget }}</span>
+                            <span class="text-emerald-400 font-bold">عائد: {{ camp.roi }}%</span>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px]">
+                            <span class="text-gray-500">عملاء: {{ camp.leads_generated }}</span>
+                            <span class="bg-white/10 px-2 py-1 rounded text-white">{{ camp.get_status_display }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-gray-500">لا توجد حملات تسويقية.</p>
+                    {% endfor %}
+                </div>
+                
+                <!-- PROCUREMENT MODULE -->
+                {% elif slug == 'procurement' %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm text-gray-300">
+                        <thead class="text-xs uppercase bg-white/5 text-gray-400">
+                            <tr><th class="px-4 py-3">المورّد</th><th class="px-4 py-3">الوصف</th><th class="px-4 py-3">الإجمالي</th><th class="px-4 py-3">الحالة</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for order in dept_data.orders %}
+                            <tr class="border-b border-white/5 hover:bg-white/5">
+                                <td class="px-4 py-3 font-bold text-white">{{ order.vendor_name }}</td>
+                                <td class="px-4 py-3 text-xs">{{ order.item_description|truncatechars:30 }}</td>
+                                <td class="px-4 py-3 text-amber-400 font-bold">{{ order.total_amount }}</td>
+                                <td class="px-4 py-3"><span class="bg-white/10 px-2 py-1 rounded text-[10px]">{{ order.get_status_display }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="px-4 py-3 text-center">لا توجد طلبات شراء.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- LEGAL MODULE -->
+                {% elif slug == 'legal' %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for contract in dept_data.contracts %}
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-4 border-t-2 {% if contract.is_expiring_soon %}border-t-red-500{% else %}border-t-emerald-500{% endif %}">
+                        <div class="font-bold text-white">{{ contract.title }}</div>
+                        <div class="text-xs text-gray-400 mb-2">{{ contract.party_name }}</div>
+                        <div class="flex justify-between items-center text-[10px]">
+                            <span class="text-gray-500">ينتهي: {{ contract.end_date|default:"مفتوح" }}</span>
+                            <span class="bg-white/10 px-2 py-1 rounded text-white">{{ contract.get_status_display }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-gray-500">لا توجد عقود مسجلة.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- CLINICAL MODULE -->
+                {% elif slug == 'clinical' %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm text-gray-300">
+                        <thead class="text-xs uppercase bg-white/5 text-gray-400">
+                            <tr><th class="px-4 py-3">المريض</th><th class="px-4 py-3">التشخيص</th><th class="px-4 py-3">تاريخ الدخول</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for patient in dept_data.patients %}
+                            <tr class="border-b border-white/5 hover:bg-white/5">
+                                <td class="px-4 py-3 font-bold text-white">{{ patient.patient_name }} ({{ patient.age }})</td>
+                                <td class="px-4 py-3 text-xs">{{ patient.diagnosis|truncatechars:40 }}</td>
+                                <td class="px-4 py-3 text-xs">{{ patient.admission_date }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="px-4 py-3 text-center">لا يوجد مرضى حالياً.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- STUDENT AFFAIRS MODULE -->
+                {% elif slug == 'student affairs' or slug == 'academic registry' %}
+                
+                {% if dept_data.blocked_students %}
+                <div class="mb-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                    <h4 class="text-red-400 font-bold mb-2"><i class="fas fa-ban ml-2"></i>طلاب محظورون اليوم (تجاوزوا 3 حالات هروب)</h4>
+                    <ul class="text-sm text-red-300 space-y-1 list-disc list-inside">
+                        {% for record in dept_data.blocked_students %}
+                        <li>{{ record.student.student_name }} (تم حظره وتنبيه الإدارة)</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if dept_data.escaped_students %}
+                <div class="mb-4 bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
+                    <h4 class="text-orange-400 font-bold mb-2"><i class="fas fa-exclamation-triangle ml-2"></i>حالات الهروب المرصودة اليوم</h4>
+                    <ul class="text-sm text-orange-300 space-y-1 list-disc list-inside">
+                        {% for escape in dept_data.escaped_students %}
+                        <li>{{ escape.student.student_name }} - هرب من: {{ escape.session.course.course_name }} (عند: {{ escape.session.teacher.user.username }})</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm text-gray-300">
+                        <thead class="text-xs uppercase bg-white/5 text-gray-400">
+                            <tr><th class="px-4 py-3">الطالب</th><th class="px-4 py-3">المرحلة</th><th class="px-4 py-3">المعدل (GPA)</th><th class="px-4 py-3">الدرجات المسجلة</th><th class="px-4 py-3">الحالة</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for student in dept_data.students %}
+                            <tr class="border-b border-white/5 hover:bg-white/5">
+                                <td class="px-4 py-3 font-bold text-white">{{ student.student_name }}</td>
+                                <td class="px-4 py-3">{{ student.grade_level }}</td>
+                                <td class="px-4 py-3 font-bold text-blue-400">{{ student.gpa }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-400 font-medium">
+                                    {% if student.grades %}
+                                        <div class="max-h-12 overflow-y-auto whitespace-pre-line">{{ student.grades }}</div>
+                                    {% else %}
+                                        ---
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3"><span class="bg-white/10 px-2 py-1 rounded text-[10px]">{{ student.get_status_display }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="px-4 py-3 text-center">لا يوجد طلاب مسجلين.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- FACULTY AFFAIRS MODULE -->
+                {% elif slug == 'faculty affairs' or slug == 'teachers' %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-white font-bold mb-3"><i class="fas fa-tasks text-fuchsia-400 ml-2"></i>مهامي والتحضير</h4>
+                        <div class="space-y-3">
+                            {% for task in dept_data.my_tasks %}
+                            <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex justify-between items-center border-r-2 {% if task.is_completed %}border-r-gray-500{% else %}border-r-fuchsia-500{% endif %}">
+                                <div>
+                                    <div class="text-sm font-bold text-white {% if task.is_completed %}line-through text-gray-500{% endif %}">{{ task.title }}</div>
+                                    <div class="text-xs text-gray-400">مطلوب: {{ task.due_date }}</div>
+                                </div>
+                                <i class="fas {% if task.is_completed %}fa-check-circle text-gray-500{% else %}fa-circle text-fuchsia-500{% endif %}"></i>
+                            </div>
+                            {% empty %}
+                            <p class="text-sm text-gray-500">لا توجد مهام أو تحضيرات مطلوبة منك حالياً.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-white font-bold mb-3"><i class="fas fa-book-open text-cyan-400 ml-2"></i>المواد المسندة إلي</h4>
+                        <div class="space-y-3">
+                            {% for course in dept_data.courses %}
+                            <div class="bg-white/5 border border-white/10 rounded-xl p-3 border-r-2 border-r-cyan-500">
+                                <div class="text-sm font-bold text-white">{{ course.course_name }}</div>
+                                <div class="text-xs text-gray-400">{{ course.description|truncatechars:50 }}</div>
+                            </div>
+                            {% empty %}
+                            <p class="text-sm text-gray-500">لم يتم إسناد مواد لك بعد.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DYNAMIC CUSTOM MODULES (Architect Built) -->
+                <div class="space-y-10 mt-10">
+                    {% if dept.active_modules.sales_units %}
+                    <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-[2rem] p-8 relative overflow-hidden group">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-xl font-black text-white flex items-center gap-3">
+                                    <i class="fas fa-home text-emerald-400"></i> وحدات المشاريع تحت الإنشاء
+                                </h3>
+                                <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Units Under Construction / Off-plan</p>
+                            </div>
+                            <button onclick="openSmartModal('sales_deal', 'تسجيل حجز وحدة', 'fas fa-plus', 'emerald')" class="bg-emerald-500 hover:bg-emerald-600 text-black px-4 py-2 rounded-xl text-xs font-black transition-all">
+                                تسجيل حجز جديد <i class="fas fa-plus mr-1"></i>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-black/20 border border-white/5 rounded-2xl p-4 text-center">
+                                <div class="text-2xl font-black text-white">12</div>
+                                <div class="text-[10px] text-gray-500 font-bold">وحدات متاحة</div>
+                            </div>
+                            <div class="bg-black/20 border border-white/5 rounded-2xl p-4 text-center">
+                                <div class="text-2xl font-black text-emerald-400">8</div>
+                                <div class="text-[10px] text-gray-500 font-bold">وحدات محجوزة</div>
+                            </div>
+                            <div class="bg-black/20 border border-white/5 rounded-2xl p-4 text-center">
+                                <div class="text-2xl font-black text-white">4</div>
+                                <div class="text-[10px] text-gray-500 font-bold">تحت التشطيب</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if dept.active_modules.investment_system %}
+                    <div class="bg-amber-500/5 border border-amber-500/20 rounded-[2rem] p-8 relative overflow-hidden group">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-xl font-black text-white flex items-center gap-3">
+                                    <i class="fas fa-chart-pie text-amber-400"></i> نظام إدارة الاستثمار المباشر
+                                </h3>
+                                <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Direct Investment Portfolio</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 p-4 bg-black/20 border border-white/5 rounded-2xl">
+                            <i class="fas fa-info-circle text-amber-500"></i>
+                            <p class="text-xs text-gray-400 font-medium leading-relaxed">هذا القسم يراقب العوائد الاستثمارية (ROI) للمشاريع الحالية وتوزيع الحصص بين المستثمرين.</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if dept.active_modules.dept_finance %}
+                    <div class="bg-indigo-500/5 border border-indigo-500/20 rounded-[2rem] p-8 relative overflow-hidden group">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-xl font-black text-white flex items-center gap-3">
+                                    <i class="fas fa-calculator text-indigo-400"></i> التحليل المالي الخاص بالإدارة
+                                </h3>
+                                <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Departmental Financial Audit</p>
+                            </div>
+                            <a href="{% url 'flownest' %}" class="text-indigo-400 hover:text-white text-xs font-bold transition-colors">عرض التفاصيل العميقة <i class="fas fa-external-link-alt mr-1"></i></a>
+                        </div>
+                        <div class="h-40 bg-black/20 border border-white/5 rounded-2xl flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fas fa-lock text-gray-600 text-3xl mb-3"></i>
+                                <p class="text-xs text-gray-500 font-bold">البيانات المالية الحساسة تظهر هنا للمديرين فقط</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- GENERIC DATABASE FOR OTHER DEPARTMENTS -->
+                {% else %}
+                <div class="text-center py-20 border border-dashed border-white/10 rounded-[3rem] bg-gradient-to-b from-white/[0.03] to-transparent animate-pulse-slow">
+                    <div class="w-20 h-20 bg-indigo-500/10 rounded-3xl flex items-center justify-center text-indigo-400 text-4xl mx-auto mb-6 shadow-2xl shadow-indigo-500/20">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <h3 class="text-white font-black text-2xl tracking-tight">إدارة ذكية متكاملة</h3>
+                    <p class="text-gray-500 text-sm mt-3 max-w-sm mx-auto leading-relaxed font-medium">
+                        هذه الإدارة مدعومة بنظام السجلات المتقدم والذكاء الاصطناعي. ابدأ بإضافة بياناتك لنقوم بتحليلها فوراً.
+                    </p>
+                </div>
+                {% endif %}
+
+                <!-- RECENT ACTIVITY LOG (Generic Records) - Ultra Premium -->
+                {% if dept_data.generic_records %}
+                <div class="mt-16 pt-10 border-t border-white/5 relative">
+                    <div class="absolute -top-1 left-0 w-20 h-1 bg-gradient-to-r from-indigo-500 to-transparent rounded-full"></div>
+                    
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-xl font-black text-white flex items-center gap-3 tracking-tighter">
+                                <i class="fas fa-chart-line text-indigo-400"></i> نبض العمليات والتحليل الذكي
+                            </h3>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">Live Operational Intelligence</p>
+                        </div>
+                        {% if profile.role == 'owner' or profile.role == 'manager' %}
+                        <div class="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-2xl shadow-lg">
+                            <div class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></div>
+                            <span class="text-[10px] font-black text-indigo-300 uppercase">عرض الإدارة العليا</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-5">
+                        {% for record in dept_data.generic_records %}
+                        <div class="group relative bg-[#1a1b26]/40 backdrop-blur-md border border-white/5 rounded-[2rem] p-6 transition-all duration-500 hover:bg-[#1a1b26]/60 hover:border-indigo-500/30 hover:translate-y-[-4px] hover:shadow-2xl hover:shadow-indigo-500/10">
+                            <!-- Floating Glow -->
+                            <div class="absolute -right-20 -top-20 w-40 h-40 bg-indigo-500/5 blur-[80px] rounded-full group-hover:bg-indigo-500/10 transition-all"></div>
+                            
+                            <div class="flex flex-col lg:flex-row gap-6 relative z-10">
+                                <!-- Meta Info -->
+                                <div class="flex-shrink-0 flex lg:flex-col items-center lg:items-start justify-between lg:justify-start gap-4 border-b lg:border-b-0 lg:border-l border-white/5 pb-4 lg:pb-0 lg:pl-6 min-w-[120px]">
+                                    <div>
+                                        <div class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">{{ record.created_at|date:"d M, Y" }}</div>
+                                        <div class="text-xl font-mono font-black text-white/90">{{ record.created_at|date:"H:i" }}</div>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <div class="flex items-center gap-2 text-[10px] font-bold text-gray-400 bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                                            <i class="fas fa-user-circle text-indigo-400"></i> {{ record.created_by.username }}
+                                        </div>
+                                        {% if profile.role == 'owner' or profile.role == 'manager' %}
+                                        <div class="flex items-center gap-2 text-[10px] font-bold text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
+                                            <i class="fas fa-building"></i> {{ record.department.name }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Main Content -->
+                                <div class="flex-1">
+                                    <h4 class="text-lg font-black text-white group-hover:text-indigo-300 transition-colors mb-2">{{ record.title }}</h4>
+                                    <p class="text-sm text-gray-400 leading-relaxed font-medium {% if record.dynamic_data %}mb-3{% else %}mb-5{% endif %}">{{ record.description|truncatechars:200 }}</p>
+                                    
+                                    {% if record.dynamic_data %}
+                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5 bg-white/5 p-4 rounded-2xl border border-white/5">
+                                        {% for key, val in record.dynamic_data.items %}
+                                        <div class="border-r border-white/10 pr-3 last:border-r-0">
+                                            <span class="text-[9px] text-indigo-400 block uppercase font-black tracking-tighter">{{ key }}</span>
+                                            <span class="text-xs text-white font-bold">{{ val }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if record.ai_insight %}
+                                    <div class="relative mt-2">
+                                        <div class="absolute inset-0 bg-indigo-500/5 blur-xl rounded-2xl"></div>
+                                        <div class="relative bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-4 flex gap-4 items-start shadow-inner">
+                                            <div class="w-10 h-10 rounded-xl bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40">
+                                                <i class="fas fa-robot"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">AI Strategic Intelligence</div>
+                                                <p class="text-xs text-indigo-100/90 font-bold leading-relaxed">{{ record.ai_insight }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="flex items-center gap-3 text-gray-600 text-xs font-bold italic animate-pulse">
+                                        <div class="flex gap-1">
+                                            <span class="w-1 h-1 bg-gray-600 rounded-full animate-bounce"></span>
+                                            <span class="w-1 h-1 bg-gray-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                            <span class="w-1 h-1 bg-gray-600 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                                        </div>
+                                        المساعد الذكي يقوم حالياً بقراءة البيانات واستنتاج الرؤى...
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- BOTTOM GRID: Team + Files -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- TEAM MEMBERS PANEL -->
+                <div class="bg-[#111827]/80 backdrop-blur border border-white/5 rounded-[2rem] p-6 overflow-hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-black text-white flex items-center gap-3">
+                            <i class="fas fa-users text-indigo-400"></i> فريق الإدارة
+                        </h2>
+                        <span class="text-xs text-gray-500 font-bold bg-white/5 px-3 py-1 rounded-full">{{ stats.total_members }} عضو</span>
+                    </div>
+                    <div class="space-y-3">
+                        {% for member in dept_members %}
+                        <div class="flex items-center justify-between p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xl transition-all group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br {{ style.gradient }} flex items-center justify-center text-white font-black text-sm">
+                                    {{ member.user.username|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-white text-sm">{{ member.user.username }}</div>
+                                    <div class="text-[10px] text-gray-500">{{ member.user.email|default:"بدون بريد" }}</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-1 rounded-lg text-[10px] font-black 
+                                    {% if member.role == 'manager' %}bg-amber-500/20 text-amber-400
+                                    {% else %}bg-indigo-500/20 text-indigo-400{% endif %}">
+                                    {{ member.get_role_display }}
+                                </span>
+                                {% if member.is_approved %}
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"></span>
+                                {% else %}
+                                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-8 text-gray-600">
+                            <i class="fas fa-user-slash text-3xl mb-3 block"></i>
+                            <p class="text-sm">لا يوجد أعضاء مسجلون في هذه الإدارة بعد</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- FILES PANEL -->
+                <div class="bg-[#111827]/80 backdrop-blur border border-white/5 rounded-[2rem] p-6 overflow-hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-black text-white flex items-center gap-3">
+                            <i class="fas fa-folder-open text-amber-400"></i> الملفات الأخيرة
+                        </h2>
+                        <a href="{% url 'upload_center' %}" class="text-xs text-indigo-400 hover:text-indigo-300 font-bold transition-colors">+ رفع جديد</a>
+                    </div>
+                    <div class="space-y-3">
+                        {% for f in dept_files %}
+                        <div class="flex items-center justify-between p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xl transition-all group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                                    {% if f.file_type == 'pdf' %}
+                                        <i class="fas fa-file-pdf text-red-400"></i>
+                                    {% elif f.file_type == 'image' %}
+                                        <i class="fas fa-file-image text-blue-400"></i>
+                                    {% elif f.file_type == 'excel' or f.file_type == 'csv' %}
+                                        <i class="fas fa-file-excel text-emerald-400"></i>
+                                    {% else %}
+                                        <i class="fas fa-file-alt text-amber-400"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-white text-sm truncate max-w-[180px]">{{ f.file.name|slice:"14:" }}</div>
+                                    <div class="text-[10px] text-gray-500">{{ f.uploaded_by.username }} · {{ f.uploaded_at|date:"d M Y" }}</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                {% if f.linked_cost %}
+                                <span class="text-xs text-emerald-400 font-bold">{{ f.linked_cost|floatformat:0 }} ج.م</span>
+                                {% endif %}
+                                <a href="{% url 'analyze_file' f.id %}" class="w-8 h-8 rounded-lg bg-indigo-500/20 hover:bg-indigo-500 flex items-center justify-center text-indigo-400 hover:text-white transition-all text-xs">
+                                    <i class="fas fa-chart-bar"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-8 text-gray-600">
+                            <i class="fas fa-folder-open text-3xl mb-3 block opacity-30"></i>
+                            <p class="text-sm">لم يُرفع أي ملف لهذه الإدارة بعد</p>
+                            <a href="{% url 'upload_center' %}" class="mt-3 inline-block text-xs text-indigo-400 hover:underline">ابدأ بالرفع الآن</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+<!-- SMART ACTION MODAL -->
+<div id="smartActionModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeSmartModal()"></div>
+    <div class="relative w-full max-w-lg bg-[#1e1e2f] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300" id="smartActionModalContent">
+        
+        <!-- Header -->
+        <div id="modalHeader" class="p-6 border-b border-white/5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div id="modalIconContainer" class="w-12 h-12 rounded-xl flex items-center justify-center text-xl">
+                    <i id="modalIcon" class="fas fa-star"></i>
+                </div>
+                <div>
+                    <h3 id="modalTitle" class="text-xl font-black text-white">إجراء ذكي</h3>
+                    <p class="text-xs text-gray-400">يرجى ملء البيانات المطلوبة</p>
+                </div>
+            </div>
+            <button onclick="closeSmartModal()" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors flex items-center justify-center">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6">
+            <form id="smartActionForm" method="POST" action="{% url 'smart_action_api' dept.id %}" enctype="multipart/form-data" class="space-y-5">
+                {% csrf_token %}
+                <input type="hidden" name="action_type" id="modalActionType" value="">
+                
+                <div id="dynamicFormFields" class="space-y-4">
+                    <!-- Fields injected via JS -->
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="submit" class="flex-1 py-3 px-4 rounded-xl text-white font-bold text-sm transition-all shadow-lg" id="modalSubmitBtn">
+                        تأكيد وحفظ
+                    </button>
+                    <button type="button" onclick="closeSmartModal()" class="py-3 px-6 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition-colors">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const DEPT_CUSTOM_SCHEMA = JSON.parse('{{ dept.custom_schema|safe|default:"[]" }}'.replace(/'/g, '"'));
+    const DEPT_UI = JSON.parse('{{ dept.ui_settings|safe|default:"{}" }}'.replace(/'/g, '"'));
+
+    function openSmartModal(actionType, title, iconClass, colorTheme) {
+        document.getElementById('modalActionType').value = actionType;
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalIcon').className = iconClass;
+        
+        const iconContainer = document.getElementById('modalIconContainer');
+        const submitBtn = document.getElementById('modalSubmitBtn');
+        
+        // Reset colors
+        iconContainer.className = `w-12 h-12 rounded-xl flex items-center justify-center text-xl bg-${colorTheme}-500/20 text-${colorTheme}-400`;
+        submitBtn.className = `flex-1 py-3 px-4 rounded-xl text-white font-bold text-sm transition-all shadow-[0_0_15px_rgba(var(--${colorTheme}-500),0.3)] bg-${colorTheme}-500 hover:bg-${colorTheme}-600`;
+
+        // Dynamic Form Fields based on Action Type
+        const fieldsContainer = document.getElementById('dynamicFormFields');
+        let fieldsHtml = '';
+
+        if(actionType === 'hr_leave') {
+            fieldsHtml = `
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">نوع الإجازة</label><select name="leave_type" class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"><option value="annual">سنوية</option><option value="sick">مرضية</option></select></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-bold text-gray-400 mb-1">من تاريخ</label><input type="date" name="start_date" required class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-400 mb-1">إلى تاريخ</label><input type="date" name="end_date" required class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></div>
+                </div>
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">السبب</label><textarea name="reason" rows="2" class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></textarea></div>
+            `;
+        } else if(actionType === 'ai_report') {
+            fieldsHtml = `
+                <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mb-4 text-center">
+                    <i class="fas fa-robot text-indigo-400 text-3xl mb-2"></i>
+                    <p class="text-sm text-indigo-200">سيقوم الذكاء الاصطناعي بتحليل كافة البيانات والمستندات الموجودة في الإدارة لإنشاء تقرير استراتيجي مفصل.</p>
+                </div>
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">التركيز الأساسي للتقرير (اختياري)</label><input type="text" name="focus_area" placeholder="مثال: تحليل الأداء المالي، أو تقييم الموظفين..." class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></div>
+            `;
+        } else if(actionType === 'session_attendance') {
+            fieldsHtml = `
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">اسم الطالب</label><input type="text" name="title" required placeholder="بحث بالاسم أو الكود..." class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">حالة الحضور</label>
+                    <select name="is_present" class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none">
+                        <option value="true">حاضر</option>
+                        <option value="false">غائب (سيتم التحقق من الهروب)</option>
+                    </select>
+                </div>
+            `;
+        } else if(actionType === 'morning_attendance') {
+            fieldsHtml = `
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">اسم الطالب</label><input type="text" name="title" required placeholder="تسجيل الحضور الصباحي..." class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">الحالة</label>
+                    <select name="is_present" class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none">
+                        <option value="true">حاضر</option>
+                        <option value="false">غائب اليوم بالكامل</option>
+                    </select>
+                </div>
+            `;
+        } else if(actionType === 'generic_add' && DEPT_CUSTOM_SCHEMA.length > 0) {
+            // Dynamic Builder Form
+            fieldsHtml = `
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">العنوان الرئيسي</label><input type="text" name="title" required class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            `;
+            DEPT_CUSTOM_SCHEMA.forEach(field => {
+                let inputType = field.type || 'text';
+                if(inputType === 'number') inputType = 'number';
+                else if(inputType === 'date') inputType = 'date';
+                
+                fieldsHtml += `
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 mb-1">${field.label}</label>
+                        <input type="${inputType}" name="dyn_${field.name}" class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none">
+                    </div>
+                `;
+            });
+            fieldsHtml += `
+                </div>
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">وصف إضافي</label><textarea name="description" rows="2" class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></textarea></div>
+            `;
+        } else {
+            fieldsHtml = `
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">العنوان / الاسم</label><input type="text" name="title" required class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></div>
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">التفاصيل / الوصف</label><textarea name="description" rows="3" required class="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-${colorTheme}-500 outline-none"></textarea></div>
+                <div class="bg-white/5 border border-white/10 rounded-lg p-4 mt-2">
+                    <label class="block text-xs font-bold text-gray-400 mb-2">إرفاق مستند (اختياري)</label>
+                    <input type="file" name="attachment" class="text-xs text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-${colorTheme}-500/20 file:text-${colorTheme}-400 hover:file:bg-${colorTheme}-500/30 transition-all cursor-pointer">
+                </div>
+            `;
+        }
+        
+        fieldsContainer.innerHTML = fieldsHtml;
+
+        const modal = document.getElementById('smartActionModal');
+        const modalContent = document.getElementById('smartActionModalContent');
+        
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }
+
+    function closeSmartModal() {
+        const modal = document.getElementById('smartActionModal');
+        const modalContent = document.getElementById('smartActionModalContent');
+        
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modalContent.classList.remove('scale-100');
+        modalContent.classList.add('scale-95');
+    }
+</script>
+
+{% endblock %}

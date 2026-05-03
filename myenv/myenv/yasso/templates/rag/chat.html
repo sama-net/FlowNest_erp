@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="h-[88vh] flex flex-col animate-fade-in-up">
+    <!-- Header -->
+    <div class="mb-3 flex items-center justify-between bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                <i class="fas fa-robot text-xl text-white"></i>
+            </div>
+            <div>
+                {% if request.user.profile.role == 'engineer' %}
+                <h1 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                    المساعد الذكي — وضع عام
+                </h1>
+                <p class="text-gray-400 text-xs">اسألني أي سؤال، أرد بنفس لغتك</p>
+                {% else %}
+                <h1 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                    FlowNest AI — تحليل الملفات
+                </h1>
+                <p class="text-gray-400 text-xs">أجيبك من داخل ملفات شركتك • أرد بنفس لغتك</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="clearHistory()" title="مسح المحادثة"
+                class="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 text-xs py-2 px-3 rounded-lg flex items-center gap-1 transition-colors">
+                <i class="fas fa-trash-alt text-xs"></i> مسح
+            </button>
+            {% if request.user.profile.role != 'engineer' %}
+            <button onclick="syncDatabase()"
+                class="bg-black/30 hover:bg-black/50 border border-white/10 text-white text-xs py-2 px-3 rounded-lg flex items-center gap-1 transition-colors">
+                <i class="fas fa-sync-alt text-xs" id="sync-icon"></i> تحديث
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div class="flex-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+        <!-- Messages Area -->
+        <div id="chat-history" class="flex-1 overflow-y-auto p-5 space-y-5 scroll-smooth">
+            <!-- Initial greeting -->
+            <div class="flex gap-3" id="greeting-msg">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow">
+                    <i class="fas fa-robot text-white text-xs"></i>
+                </div>
+                <div class="bg-white/10 border border-white/5 rounded-2xl rounded-tl-none px-4 py-3 text-white max-w-[80%] shadow text-sm leading-relaxed">
+                    {% if request.user.profile.role == 'engineer' %}
+                    مرحباً! أنا مساعدك الذكي. اسألني أي سؤال وسأجيبك بنفس لغتك 😊
+                    {% else %}
+                    مرحباً! أنا مربوط بملفات شركتك مباشرة. اسألني عن أي بيانات وسأجيبك بنفس لغتك 📊
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div class="p-4 bg-black/40 border-t border-white/10">
+            <form id="chat-form" onsubmit="sendMessage(event)" class="relative flex items-center gap-2">
+                <input type="text" id="chat-input"
+                    class="flex-1 bg-white/5 border border-white/10 rounded-full py-3 px-5 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-inner text-sm"
+                    placeholder="اكتب سؤالك هنا... أو write in English"
+                    required autocomplete="off">
+                <button type="submit"
+                    class="w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-full text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg flex-shrink-0">
+                    <i class="fas fa-paper-plane text-sm"></i>
+                </button>
+            </form>
+            <p class="text-xs text-gray-600 mt-1 text-center">
+                <i class="fas fa-shield-alt text-xs ml-1"></i>
+                المحادثة محفوظة محلياً في متصفحك
+                <span id="msg-count" class="mr-2 text-indigo-500"></span>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'fn_chat_{{ request.user.pk }}_{{ request.user.profile.role }}';
+const chatHistory = document.getElementById('chat-history');
+const chatInput   = document.getElementById('chat-input');
+let conversationHistory = []; // {role, content} for Groq
+
+// ── CSRF ──────────────────────────────────────────────────────
+function getCookie(name) {
+    for (const c of document.cookie.split(';')) {
+        const [k, v] = c.trim().split('=');
+        if (k === name) return decodeURIComponent(v);
+    }
+    return null;
+}
+const csrftoken = getCookie('csrftoken');
+
+// ── Render helpers ─────────────────────────────────────────────
+function appendMessage(sender, text, isHtml = false, saveToStorage = true) {
+    const div = document.createElement('div');
+    div.className = sender === 'user' ? 'flex gap-3 flex-row-reverse' : 'flex gap-3';
+
+    const avatar = sender === 'user'
+        ? `<div class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow"><i class="fas fa-user text-white text-xs"></i></div>`
+        : `<div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow"><i class="fas fa-robot text-white text-xs"></i></div>`;
+
+    const bubbleCls = sender === 'user'
+        ? 'bg-primary/80 rounded-tr-none text-white'
+        : 'bg-white/10 rounded-tl-none text-white';
+
+    const content = isHtml ? text : text.replace(/\n/g, '<br>');
+
+    div.innerHTML = `${avatar}
+        <div class="${bubbleCls} border border-white/5 rounded-2xl px-4 py-3 max-w-[80%] shadow text-sm leading-relaxed">${content}</div>`;
+
+    chatHistory.appendChild(div);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    if (saveToStorage && !isHtml) saveMessagesToStorage();
+    updateMsgCount();
+    return div;
+}
+
+// ── LocalStorage persistence ──────────────────────────────────
+function saveMessagesToStorage() {
+    const msgs = [];
+    chatHistory.querySelectorAll('.flex[class*="gap-3"]').forEach(row => {
+        if (row.id === 'greeting-msg') return;
+        const isUser = row.classList.contains('flex-row-reverse');
+        const bubble = row.querySelector('[class*="rounded-2xl"]');
+        if (bubble) msgs.push({ sender: isUser ? 'user' : 'bot', text: bubble.innerHTML });
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs));
+}
+
+function loadMessagesFromStorage() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+        const msgs = JSON.parse(raw);
+        msgs.forEach(m => {
+            appendMessage(m.sender, m.text, true, false);
+            // Rebuild Groq history (must convert HTML back to plain text for the AI context)
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = m.text;
+            // Remove the 'sources' block from the AI context so it doesn't pollute the prompt
+            const sourcesDiv = tempDiv.querySelector('.mt-3.pt-2.border-t');
+            if (sourcesDiv) sourcesDiv.remove();
+            
+            const plainText = tempDiv.innerText.trim();
+            if (m.sender === 'user') conversationHistory.push({ role: 'user', content: plainText });
+            else conversationHistory.push({ role: 'assistant', content: plainText });
+        });
+    } catch(e) { localStorage.removeItem(STORAGE_KEY); }
+}
+
+function clearHistory() {
+    localStorage.removeItem(STORAGE_KEY);
+    conversationHistory = [];
+    chatHistory.querySelectorAll('.flex:not(#greeting-msg)').forEach(el => el.remove());
+    updateMsgCount();
+}
+
+function updateMsgCount() {
+    const n = chatHistory.querySelectorAll('.flex:not(#greeting-msg)').length;
+    const el = document.getElementById('msg-count');
+    if (el) el.textContent = n > 0 ? `(${n} رسالة محفوظة)` : '';
+}
+
+// ── Send message ──────────────────────────────────────────────
+async function sendMessage(e) {
+    e.preventDefault();
+    const question = chatInput.value.trim();
+    if (!question) return;
+
+    appendMessage('user', question);
+    conversationHistory.push({ role: 'user', content: question });
+    chatInput.value = '';
+    chatInput.disabled = true;
+
+    // Typing indicator
+    const loadingDiv = appendMessage('bot', `
+        <div class="flex gap-1 items-center h-4">
+            <div class="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
+            <div class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay:0.12s"></div>
+            <div class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay:0.24s"></div>
+        </div>`, true, false);
+
+    try {
+        const res = await fetch('{% url "rag:chat_api" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            body: JSON.stringify({
+                question: question,
+                history: conversationHistory.slice(-12),  // last 6 turns
+            })
+        });
+
+        loadingDiv.remove();
+        const data = await res.json();
+
+        if (data.error) {
+            appendMessage('bot', `<span class="text-red-400">⚠️ ${data.error}</span>`, true);
+        } else {
+            const answer = data.answer || '';
+            conversationHistory.push({ role: 'assistant', content: answer });
+
+            let html = answer.replace(/\n/g, '<br>');
+
+            // Show sources if RAG
+            if (data.sources && data.sources.length > 0 && data.context_used) {
+                // Keep track of unique source names
+                const seenSources = new Set();
+                const srcList = [];
+                
+                data.sources.forEach(s => {
+                    let sourceName = s.file_name;
+                    if (!sourceName) {
+                        if (s.type === 'financial_record') sourceName = 'سجل مالي';
+                        else if (s.type === 'company_economics') sourceName = 'تحليل مالي متقدم';
+                        else if (s.type === 'company_profile') sourceName = 'بيانات الشركة';
+                        else sourceName = 'ملف نظام';
+                    }
+                    
+                    if (!seenSources.has(sourceName)) {
+                        seenSources.add(sourceName);
+                        srcList.push(`<span class="inline-block bg-indigo-500/20 border border-indigo-500/30 px-2 py-1 rounded-md mr-1 mb-1 text-[10px] text-indigo-200">
+                            <i class="fas fa-file-alt mr-1"></i> ${sourceName}
+                        </span>`);
+                    }
+                });
+
+                if (srcList.length > 0) {
+                    html += `<div class="mt-3 pt-2 border-t border-white/10">
+                        <p class="text-xs text-indigo-300 opacity-80 mb-2"><i class="fas fa-database ml-1"></i> المصادر المعتمد عليها:</p>
+                        <div class="flex flex-wrap gap-1">${srcList.join('')}</div>
+                    </div>`;
+                }
+            }
+            if (data.generation_time_sec) {
+                html += `<div class="mt-1 text-xs text-gray-600">${data.generation_time_sec}s</div>`;
+            }
+            appendMessage('bot', html, true);
+            saveMessagesToStorage();
+        }
+    } catch (err) {
+        loadingDiv.remove();
+        appendMessage('bot', `<span class="text-red-400">⚠️ خطأ في الاتصال بالخادم</span>`, true);
+    } finally {
+        chatInput.disabled = false;
+        chatInput.focus();
+    }
+}
+
+// ── Sync DB ────────────────────────────────────────────────────
+async function syncDatabase() {
+    const icon = document.getElementById('sync-icon');
+    icon.classList.add('animate-spin');
+    try {
+        await fetch('{% url "rag:sync_db" %}', { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
+        appendMessage('bot', '✅ تم تحديث قاعدة البيانات بنجاح!', false);
+    } catch { appendMessage('bot', '❌ فشل التحديث.', false); }
+    finally { icon.classList.remove('animate-spin'); }
+}
+
+// ── Init: load saved messages ──────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    loadMessagesFromStorage();
+});
+</script>
+{% endblock %}

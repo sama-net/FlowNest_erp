@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+name = {{name|slice:'21'}}
+{% block content %}
+items = {1, 2, 3, 4, 5}
+    <h1>Welcome to {{name}}</h1>
+    <p>This is the home page.</p>
+    {% if name == 'Yassen' %}
+        <p>Hello, Yassen! Welcome back!</p>
+    {% else %}
+        <p>Hello, {{name}}! Nice to meet you!</p>
+    {% endif %}
+    {% for item in items %}
+        <p>{{item}}</p>
+    {% endfor %}
+{% endblock %}
+
+
+
+
+

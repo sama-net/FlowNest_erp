@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<style>
+.step-card { display: none; }
+.step-card.active { display: block; }
+.module-card { cursor: pointer; transition: all 0.2s; }
+.module-card.selected { border-color: #6366f1 !important; background: rgba(99,102,241,0.15) !important; }
+.module-card:hover { border-color: rgba(99,102,241,0.5); transform: translateY(-2px); }
+.step-indicator { transition: all 0.3s; }
+.step-indicator.done { background: #10b981 !important; }
+.step-indicator.active { background: #6366f1 !important; box-shadow: 0 0 20px rgba(99,102,241,0.4); }
+</style>
+
+<div class="min-h-screen bg-[#07090f] p-4 md:p-8" dir="rtl">
+
+  <!-- Header -->
+  <div class="max-w-4xl mx-auto mb-8">
+    <div class="flex items-center gap-4 mb-2">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <i class="fas fa-building text-white text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-black text-white">إعداد شركتك</h1>
+        <p class="text-gray-500 text-sm">خطوات بسيطة — جاهز في 2 دقيقة</p>
+      </div>
+      <a href="{% url 'dashboard' %}" class="mr-auto text-sm text-gray-500 hover:text-white flex items-center gap-2">
+        <i class="fas fa-arrow-left"></i> العودة للـ Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Step Indicators -->
+  <div class="max-w-4xl mx-auto mb-8">
+    <div class="flex items-center gap-0">
+      {% for label, icon in steps %}
+      <div class="flex items-center flex-1">
+        <div class="flex flex-col items-center">
+          <div id="step-ind-{{ forloop.counter }}" class="step-indicator w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-black text-sm {% if forloop.first %}active{% endif %}">
+            <span id="step-num-{{ forloop.counter }}">{{ forloop.counter }}</span>
+          </div>
+          <span class="text-[10px] text-gray-500 mt-1 hidden md:block">{{ label }}</span>
+        </div>
+        {% if not forloop.last %}
+        <div id="step-line-{{ forloop.counter }}" class="flex-1 h-0.5 bg-white/10 mx-2 transition-all duration-500"></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="max-w-4xl mx-auto">
+
+    <!-- ══ STEP 1: Company Info ══ -->
+    <div id="step-1" class="step-card active">
+      <div class="bg-[#0d0f1a] border border-white/8 rounded-3xl p-8 shadow-2xl">
+        <h2 class="text-xl font-black text-white mb-1">🏢 بيانات الشركة</h2>
+        <p class="text-gray-500 text-sm mb-6">الاسم والقطاع والوصف — كلها تساعد الـ AI يفهم شركتك أحسن</p>
+
+        <div class="space-y-5">
+          <div>
+            <label class="text-xs text-gray-400 font-bold mb-2 block">اسم الشركة *</label>
+            <input id="s1-name" type="text" value="{{ company.name|default:'' }}"
+              class="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/60"
+              placeholder="مثال: شركة النور للمقاولات">
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs text-gray-400 font-bold mb-2 block">القطاع</label>
+              <select id="s1-sector" class="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/60">
+                <option value="corporate" {% if profile.sector == 'corporate' %}selected{% endif %}>شركات / تجاري</option>
+                <option value="construction" {% if profile.sector == 'construction' %}selected{% endif %}>إنشاءات / عقارات</option>
+                <option value="education" {% if profile.sector == 'education' %}selected{% endif %}>تعليمي</option>
+                <option value="medical" {% if profile.sector == 'medical' %}selected{% endif %}>طبي / صحي</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 font-bold mb-2 block">الصناعة / التخصص</label>
+              <input id="s1-industry" type="text" value="{{ company.industry|default:'' }}"
+                class="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/60"
+                placeholder="مثال: مقاولات وتطوير عقاري">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 font-bold mb-2 block">وصف مختصر للشركة</label>
+            <textarea id="s1-desc" rows="3"
+              class="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/60 resize-none"
+              placeholder="ما الذي تفعله شركتك؟ (يساعد الـ AI على الإجابة بدقة)">{{ company.description|default:'' }}</textarea>
+          </div>
+        </div>
+
+        <div id="s1-error" class="hidden mt-4 text-red-400 text-sm bg-red-500/10 p-3 rounded-xl"></div>
+
+        <button onclick="saveStep1()" class="mt-6 w-full py-4 rounded-2xl bg-gradient-to-l from-indigo-600 to-purple-600 text-white font-black text-sm hover:opacity-90 transition-all shadow-lg shadow-indigo-600/30">
+          التالي: اختيار الوحدات <i class="fas fa-arrow-left mr-2"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ STEP 2: Modules ══ -->
+    <div id="step-2" class="step-card">
+      <div class="bg-[#0d0f1a] border border-white/8 rounded-3xl p-8 shadow-2xl">
+        <h2 class="text-xl font-black text-white mb-1">⚡ اختر الوحدات التي تحتاجها</h2>
+        <p class="text-gray-500 text-sm mb-6">كل وحدة ستصبح قسماً في نظامك — تقدر تضيف أو تحذف في أي وقت</p>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3" id="modules-grid">
+          {% for mod in modules_catalog %}
+          <div class="module-card border border-white/8 rounded-2xl p-4 text-right" data-id="{{ mod.id }}">
+            <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mb-3 text-indigo-400">
+              <i class="{{ mod.icon }}"></i>
+            </div>
+            <h4 class="text-white text-xs font-bold mb-1">{{ mod.name }}</h4>
+            <p class="text-gray-500 text-[10px] leading-relaxed">{{ mod.desc }}</p>
+          </div>
+          {% endfor %}
+        </div>
+
+        <p class="text-center text-xs text-gray-600 mt-4"><span id="mod-count">0</span> وحدة مختارة</p>
+
+        <div class="flex gap-3 mt-6">
+          <button onclick="goStep(1)" class="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold text-sm hover:bg-white/10">
+            <i class="fas fa-arrow-right ml-2"></i> السابق
+          </button>
+          <button onclick="saveStep2()" class="flex-2 flex-1 py-4 rounded-2xl bg-gradient-to-l from-indigo-600 to-purple-600 text-white font-black text-sm hover:opacity-90 shadow-lg shadow-indigo-600/30">
+            التالي: الأقسام <i class="fas fa-arrow-left mr-2"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STEP 3: Departments ══ -->
+    <div id="step-3" class="step-card">
+      <div class="bg-[#0d0f1a] border border-white/8 rounded-3xl p-8 shadow-2xl">
+        <h2 class="text-xl font-black text-white mb-1">🏗️ الأقسام</h2>
+        <p class="text-gray-500 text-sm mb-6">الوحدات التي اخترتها أصبحت أقساماً — تقدر تضيف أقساماً مخصصة هنا</p>
+
+        <!-- Add custom department -->
+        <div class="flex gap-3 mb-5">
+          <input id="new-dept-name" type="text" placeholder="اسم القسم الجديد..."
+            class="flex-1 bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/60">
+          <input id="new-dept-desc" type="text" placeholder="وصف مختصر (اختياري)"
+            class="flex-1 bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/60 hidden md:block">
+          <button onclick="addDept()" class="px-5 py-3 rounded-2xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-500">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+
+        <!-- Departments List -->
+        <div id="dept-list" class="space-y-2 max-h-80 overflow-y-auto"></div>
+        <p id="dept-empty" class="text-center text-xs text-gray-600 py-8">لا توجد أقسام بعد — اختر وحدات أو أضف أقساماً مخصصة</p>
+
+        <div class="flex gap-3 mt-6">
+          <button onclick="goStep(2)" class="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold text-sm hover:bg-white/10">
+            <i class="fas fa-arrow-right ml-2"></i> السابق
+          </button>
+          <button onclick="goStep(4)" class="flex-1 py-4 rounded-2xl bg-gradient-to-l from-indigo-600 to-purple-600 text-white font-black text-sm hover:opacity-90 shadow-lg shadow-indigo-600/30">
+            التالي: الفريق <i class="fas fa-arrow-left mr-2"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STEP 4: Team ══ -->
+    <div id="step-4" class="step-card">
+      <div class="bg-[#0d0f1a] border border-white/8 rounded-3xl p-8 shadow-2xl">
+        <h2 class="text-xl font-black text-white mb-1">👥 الفريق</h2>
+        <p class="text-gray-500 text-sm mb-6">شارك رابط الدعوة مع فريقك — كل عضو يسجّل ويطلب الانضمام</p>
+
+        <!-- Invite Link -->
+        <div class="bg-white/5 border border-white/8 rounded-2xl p-5 mb-5">
+          <p class="text-xs text-gray-400 mb-3 font-bold">رابط دعوة الفريق</p>
+          <div class="flex gap-3">
+            <input id="invite-link-input" readonly
+              class="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-indigo-300 text-xs font-mono"
+              placeholder="جاري التحميل...">
+            <button onclick="copyInviteLink()" class="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-500">
+              <i class="fas fa-copy"></i> نسخ
+            </button>
+          </div>
+          <p class="text-[10px] text-gray-600 mt-2">أرسل هذا الرابط لأعضاء فريقك — سيسجّلون ويختارون اسم الشركة</p>
+        </div>
+
+        <!-- Team List -->
+        <p class="text-xs text-gray-400 font-bold mb-3">أعضاء الفريق الحالي</p>
+        <div id="team-list" class="space-y-2 max-h-72 overflow-y-auto"></div>
+        <p id="team-empty" class="text-center text-xs text-gray-600 py-6">لا يوجد أعضاء بعد</p>
+
+        <div class="flex gap-3 mt-6">
+          <button onclick="goStep(3)" class="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold text-sm hover:bg-white/10">
+            <i class="fas fa-arrow-right ml-2"></i> السابق
+          </button>
+          <a href="{% url 'dashboard' %}" class="flex-1 py-4 rounded-2xl bg-gradient-to-l from-emerald-600 to-teal-600 text-white font-black text-sm hover:opacity-90 shadow-lg shadow-emerald-600/30 text-center">
+            <i class="fas fa-check ml-2"></i> الذهاب للـ Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /max-w -->
+</div>
+
+<!-- ══ CUSTOMIZE DEPT MODAL ══ -->
+<div id="customize-modal" class="fixed inset-0 z-[100] hidden">
+  <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeCustomize()"></div>
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl p-6">
+    <div class="bg-[#0d101a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-fade-in-up">
+      <div class="p-6 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-black text-white" id="modal-dept-title">تخصيص القسم</h3>
+          <p class="text-gray-500 text-xs mt-1">صمّم هيكل البيانات والألوان لهذا القسم</p>
+        </div>
+        <button onclick="closeCustomize()" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="p-6 space-y-8 max-h-[70vh] overflow-y-auto">
+        <!-- UI Settings -->
+        <div>
+          <h4 class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4">🎨 إعدادات الشكل</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-[10px] text-gray-400 font-bold mb-2 block">لون القسم (HEX)</label>
+              <div class="flex gap-2">
+                <input id="modal-dept-color" type="color" class="w-10 h-10 rounded-xl bg-transparent border-none cursor-pointer">
+                <input id="modal-dept-color-text" type="text" class="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-xs" placeholder="#6366f1">
+              </div>
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-400 font-bold mb-2 block">أيقونة القسم (FontAwesome)</label>
+              <input id="modal-dept-icon" type="text" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-xs" placeholder="fas fa-box">
+            </div>
+          </div>
+        </div>
+
+        <!-- Field Builder -->
+        <div>
+          <h4 class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4 flex justify-between">
+            <span>📋 بناء الحقول (Schema)</span>
+            <button onclick="addField()" class="text-indigo-400 hover:text-indigo-300 text-[10px]">
+              <i class="fas fa-plus"></i> إضافة حقل
+            </button>
+          </h4>
+          
+          <div id="field-list" class="space-y-3">
+            <!-- Dynamic Fields -->
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 border-t border-white/5 flex gap-3">
+        <button onclick="closeCustomize()" class="flex-1 py-3 rounded-2xl bg-white/5 text-gray-400 font-bold text-sm">إلغاء</button>
+        <button onclick="saveCustomization()" class="flex-1 py-3 rounded-2xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-500 shadow-lg shadow-indigo-600/20">حفظ التغييرات</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+const CSRF = '{{ csrf_token }}';
+const API  = '/setup/api/';
+let currentStep = 1;
+const TOTAL_STEPS = 4;
+let selectedModules = new Set();
+
+// ── Step navigation ───────────────────────────────────────────────────────────
+function goStep(n) {
+    document.querySelectorAll('.step-card').forEach(c => c.classList.remove('active'));
+    document.getElementById(`step-${n}`).classList.add('active');
+    // Update indicators
+    for (let i = 1; i <= TOTAL_STEPS; i++) {
+        const ind = document.getElementById(`step-ind-${i}`);
+        if (!ind) continue;
+        if (i < n) { ind.className = 'step-indicator w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-black text-sm done'; ind.innerHTML = '<i class="fas fa-check text-xs"></i>'; }
+        else if (i === n) { ind.className = 'step-indicator w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-black text-sm active'; ind.innerHTML = `<span>${i}</span>`; }
+        else { ind.className = 'step-indicator w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-black text-sm'; ind.innerHTML = `<span>${i}</span>`; }
+        // Line
+        const line = document.getElementById(`step-line-${i}`);
+        if (line) line.style.background = i < n ? '#10b981' : 'rgba(255,255,255,0.1)';
+    }
+    currentStep = n;
+    if (n === 3) loadDepts();
+    if (n === 4) { loadTeam(); loadInviteLink(); }
+    window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(action, extra={}) {
+    const r = await fetch(API, {
+        method:'POST',
+        headers:{'X-CSRFToken':CSRF,'Content-Type':'application/json'},
+        body: JSON.stringify({action, ...extra})
+    });
+    return r.json();
+}
+
+// ── Step 1 ────────────────────────────────────────────────────────────────────
+async function saveStep1() {
+    const name = document.getElementById('s1-name').value.trim();
+    const err  = document.getElementById('s1-error');
+    if (!name) { err.textContent = 'يرجى إدخال اسم الشركة'; err.classList.remove('hidden'); return; }
+    err.classList.add('hidden');
+    const data = await api('save_company_info', {
+        name,
+        industry: document.getElementById('s1-industry').value,
+        description: document.getElementById('s1-desc').value,
+        sector: document.getElementById('s1-sector').value,
+    });
+    if (data.ok) goStep(2);
+    else { err.textContent = data.error || 'حدث خطأ'; err.classList.remove('hidden'); }
+}
+
+// ── Step 2: Modules ───────────────────────────────────────────────────────────
+document.querySelectorAll('.module-card').forEach(card => {
+    card.addEventListener('click', () => {
+        const id = card.dataset.id;
+        if (selectedModules.has(id)) { selectedModules.delete(id); card.classList.remove('selected'); }
+        else { selectedModules.add(id); card.classList.add('selected'); }
+        document.getElementById('mod-count').textContent = selectedModules.size;
+    });
+});
+
+async function saveStep2() {
+    if (selectedModules.size > 0) {
+        await api('save_modules', {modules: [...selectedModules]});
+    }
+    goStep(3);
+}
+
+// ── Step 3: Departments ───────────────────────────────────────────────────────
+async function loadDepts() {
+    const data = await api('get_departments');
+    renderDepts(data.departments || []);
+}
+
+function renderDepts(depts) {
+    const list = document.getElementById('dept-list');
+    const empty = document.getElementById('dept-empty');
+    if (!depts.length) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    list.innerHTML = depts.map(d => `
+      <div class="flex items-center justify-between bg-white/5 border border-white/8 rounded-xl px-4 py-3">
+        <div class="flex items-center gap-3">
+           <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+             <i class="${(d.ui_settings && d.ui_settings.icon) ? d.ui_settings.icon : 'fas fa-sitemap'}"></i>
+           </div>
+           <div>
+             <p class="text-white text-xs font-bold">${d.name}</p>
+             ${d.description ? `<p class="text-gray-500 text-[10px]">${d.description}</p>` : ''}
+           </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick='openCustomize(${d.id}, "${d.name}", \`${JSON.stringify(d.custom_schema || [])}\`, \`${JSON.stringify(d.ui_settings || {})}\`)' 
+            class="text-indigo-400 hover:text-indigo-300 text-xs px-2 py-1 rounded-lg hover:bg-indigo-500/10">
+            <i class="fas fa-magic ml-1"></i> تخصيص
+          </button>
+          <button onclick="deleteDept(${d.id}, this)" class="text-gray-600 hover:text-red-400 text-xs px-2 py-1 rounded-lg hover:bg-red-500/10">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>`).join('');
+
+}
+
+async function addDept() {
+    const name = document.getElementById('new-dept-name').value.trim();
+    const desc = document.getElementById('new-dept-desc').value.trim();
+    if (!name) return;
+    const data = await api('add_department', {name, description: desc});
+    if (data.ok) { document.getElementById('new-dept-name').value = ''; document.getElementById('new-dept-desc').value = ''; loadDepts(); }
+}
+
+async function deleteDept(id, btn) {
+    const data = await api('delete_department', {dept_id: id});
+    if (data.ok) loadDepts();
+}
+
+// ── Customize Dept ───────────────────────────────────────────────────────────
+let editingDeptId = null;
+let currentSchema = [];
+
+function openCustomize(id, name, schemaRaw, uiRaw) {
+    editingDeptId = id;
+    document.getElementById('modal-dept-title').textContent = `تخصيص قسم: ${name}`;
+    
+    const ui = uiRaw ? JSON.parse(uiRaw.replace(/'/g, '"')) : {color:'#6366f1', icon:'fas fa-building'};
+    document.getElementById('modal-dept-color').value = ui.color;
+    document.getElementById('modal-dept-color-text').value = ui.color;
+    document.getElementById('modal-dept-icon').value = ui.icon;
+
+    currentSchema = schemaRaw ? JSON.parse(schemaRaw.replace(/'/g, '"')) : [];
+    renderFields();
+
+    document.getElementById('customize-modal').classList.remove('hidden');
+}
+
+function closeCustomize() {
+    document.getElementById('customize-modal').classList.add('hidden');
+    editingDeptId = null;
+}
+
+function renderFields() {
+    const list = document.getElementById('field-list');
+    list.innerHTML = currentSchema.map((f, i) => `
+      <div class="flex gap-2 items-end bg-white/5 p-3 rounded-xl border border-white/5">
+        <div class="flex-1">
+          <label class="text-[9px] text-gray-500 mb-1 block">اسم الحقل (Label)</label>
+          <input type="text" value="${f.label}" onchange="updateField(${i}, 'label', this.value)" 
+            class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs">
+        </div>
+        <div class="w-24">
+          <label class="text-[9px] text-gray-500 mb-1 block">النوع</label>
+          <select onchange="updateField(${i}, 'type', this.value)" 
+            class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs">
+            <option value="text" ${f.type==='text'?'selected':''}>نص</option>
+            <option value="number" ${f.type==='number'?'selected':''}>رقم</option>
+            <option value="date" ${f.type==='date'?'selected':''}>تاريخ</option>
+            <option value="select" ${f.type==='select'?'selected':''}>قائمة</option>
+          </select>
+        </div>
+        <div class="flex-1">
+          <label class="text-[9px] text-gray-500 mb-1 block">المعرف (Key)</label>
+          <input type="text" value="${f.name}" onchange="updateField(${i}, 'name', this.value)" 
+            class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-indigo-300 text-xs font-mono">
+        </div>
+        <button onclick="removeField(${i})" class="text-gray-600 hover:text-red-400 mb-1 px-2"><i class="fas fa-times"></i></button>
+      </div>
+    `).join('');
+}
+
+function addField() {
+    currentSchema.push({name: `field_${Date.now()}`, type: 'text', label: 'حقل جديد'});
+    renderFields();
+}
+
+function updateField(index, key, val) {
+    currentSchema[index][key] = val;
+}
+
+function removeField(index) {
+    currentSchema.splice(index, 1);
+    renderFields();
+}
+
+async function saveCustomization() {
+    const ui = {
+        color: document.getElementById('modal-dept-color').value,
+        icon: document.getElementById('modal-dept-icon').value
+    };
+    
+    const r1 = await api('save_department_schema', {dept_id: editingDeptId, schema: currentSchema});
+    const r2 = await api('save_department_ui', {dept_id: editingDeptId, ui: ui});
+    
+    if (r1.ok && r2.ok) {
+        closeCustomize();
+        loadDepts();
+    } else {
+        alert('حدث خطأ أثناء الحفظ');
+    }
+}
+
+
+// ── Step 4: Team ──────────────────────────────────────────────────────────────
+async function loadInviteLink() {
+    const data = await api('get_invite_link');
+    if (data.ok) document.getElementById('invite-link-input').value = data.invite_url;
+}
+
+function copyInviteLink() {
+    const inp = document.getElementById('invite-link-input');
+    navigator.clipboard.writeText(inp.value).then(() => {
+        const btn = inp.nextElementSibling;
+        btn.innerHTML = '<i class="fas fa-check"></i> تم النسخ';
+        setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> نسخ'; }, 2000);
+    });
+}
+
+async function loadTeam() {
+    const data = await api('get_team');
+    const list = document.getElementById('team-list');
+    const empty = document.getElementById('team-empty');
+    const team = data.team || [];
+    if (!team.length) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    list.innerHTML = team.map(m => `
+      <div class="flex items-center justify-between bg-white/5 border border-white/8 rounded-xl px-4 py-3">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-black">${m.username[0].toUpperCase()}</div>
+          <div>
+            <p class="text-white text-xs font-bold">${m.username}</p>
+            <p class="text-gray-500 text-[10px]">${m.role} · ${m.department}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          ${!m.is_approved ? `<button onclick="approveMember(${m.id})" class="text-[10px] bg-green-500/20 text-green-400 px-2 py-1 rounded-lg hover:bg-green-500/30 font-bold">تفعيل</button>` : '<span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">✓ مفعّل</span>'}
+          <button onclick="removeMember(${m.id}, this)" class="text-gray-600 hover:text-red-400 text-xs px-2 py-1 rounded-lg hover:bg-red-500/10"><i class="fas fa-times"></i></button>
+        </div>
+      </div>`).join('');
+}
+
+async function approveMember(id) {
+    await api('approve_member', {profile_id: id});
+    loadTeam();
+}
+
+async function removeMember(id, btn) {
+    if (!confirm('هل تريد إزالة هذا العضو؟')) return;
+    await api('remove_member', {profile_id: id});
+    loadTeam();
+}
+
+// Enter key on dept input
+document.getElementById('new-dept-name').addEventListener('keydown', e => { if (e.key === 'Enter') addDept(); });
+</script>
+{% endblock %}

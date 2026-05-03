@@ -1,0 +1,17 @@
+Django>=5.0
+gunicorn
+whitenoise
+groq
+requests
+python-dotenv
+psycopg2-binary
+dj-database-url
+numpy<2.0.0
+openpyxl
+google-generativeai
+pandas
+pdfplumber
+pillow
+python-decouple
+chromadb==0.6.3
+sqlparse

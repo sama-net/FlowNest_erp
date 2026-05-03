@@ -1,0 +1,8 @@
+# Nested .gitignore
+Include/
+Lib/
+Scripts/
+share/
+pyvenv.cfg
+*.sqlite3
+__pycache__/
