@@ -22,6 +22,8 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-key-here')
 DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=lambda v: [s.strip() for s in v.split(',')])
+if '.pythonanywhere.com' not in ALLOWED_HOSTS and '*' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('.pythonanywhere.com')
 
 CSRF_TRUSTED_ORIGINS = [
     'https://*.ngrok-free.app',
@@ -29,6 +31,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.up.railway.app',
     'https://*.railway.app',
     'https://*.onrender.com',
+    'https://*.pythonanywhere.com',
 ]
 
 INSTALLED_APPS = [
